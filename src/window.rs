@@ -31,11 +31,12 @@ impl Window {
 
 		REGISTER_WINDOW_CLASS.call_once(|| {
 			// define a new class for the window
+			use crate::class;
 			let class = WNDCLASSW {
-				hCursor: unsafe { LoadCursorW(0, IDC_ARROW) },
+				hCursor: unsafe { LoadCursorW(0, crate::cursor::Arrow) },
 				hInstance: instance,
 				lpszClassName: class_name.as_pwstr(),
-				style: class_style::HRedraw | class_style::VRedraw,
+				style: class::style::HRedraw | class::style::VRedraw,
 				lpfnWndProc: window_proc,
 				..Default::default()
 			};
@@ -111,27 +112,6 @@ impl Default for Point {
 
 pub type WindowProc =
 	unsafe extern "system" fn(window: HWND, message: message::Type, WPARAM, LPARAM) -> LRESULT;
-
-#[allow(dead_code)]
-#[allow(non_upper_case_globals)]
-pub mod class_style {
-	use windows::Win32::UI::WindowsAndMessaging::*;
-	pub type Type = WNDCLASS_STYLES;
-
-	pub const VRedraw: Type = CS_VREDRAW;
-	pub const HRedraw: Type = CS_HREDRAW;
-	pub const Dblclks: Type = CS_DBLCLKS;
-	pub const OwndC: Type = CS_OWNDC;
-	pub const ClassDc: Type = CS_CLASSDC;
-	pub const ParentDc: Type = CS_PARENTDC;
-	pub const NoClose: Type = CS_NOCLOSE;
-	pub const SaveBits: Type = CS_SAVEBITS;
-	pub const ByteAlignClient: Type = CS_BYTEALIGNCLIENT;
-	pub const ByteAlignWindow: Type = CS_BYTEALIGNWINDOW;
-	pub const GlobalClass: Type = CS_GLOBALCLASS;
-	pub const Ime: Type = CS_IME;
-	pub const DropShadow: Type = CS_DROPSHADOW;
-}
 
 #[allow(dead_code)]
 #[allow(non_upper_case_globals)]

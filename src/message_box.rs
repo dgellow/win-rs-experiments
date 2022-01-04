@@ -1,3 +1,4 @@
+use crate::wide_string::ToWide;
 use std::fmt;
 use windows::Win32::UI::WindowsAndMessaging::*;
 
@@ -6,8 +7,10 @@ pub fn new(
 	title: &str,
 	style: style::Flag,
 ) -> std::result::Result<Result, MessageBoxError> {
+	let w_msg = msg.to_wide();
+	let w_title = title.to_wide();
 	unsafe {
-		let status = MessageBoxA(None, msg, title, style);
+		let status = MessageBoxW(None, w_msg.as_pwstr(), w_title.as_pwstr(), style);
 		match Result::try_from(status) {
 			Ok(t) => Ok(t),
 			Err(unknown) => Err(MessageBoxError::new(unknown)),
@@ -55,26 +58,6 @@ pub enum Result {
 	Async,
 	Timeout,
 }
-
-// impl Result {
-// 	pub fn value(self) -> MESSAGEBOX_RESULT {
-// 		match self {
-// 			Result::Ok => IDOK,
-// 			Result::Cancel => IDCANCEL,
-// 			Result::Abort => IDABORT,
-// 			Result::Retry => IDRETRY,
-// 			Result::Ignore => IDIGNORE,
-// 			Result::Yes => IDYES,
-// 			Result::No => IDNO,
-// 			Result::Close => IDCLOSE,
-// 			Result::Help => IDHELP,
-// 			Result::TryAgain => IDTRYAGAIN,
-// 			Result::Continue => IDCONTINUE,
-// 			Result::Async => IDASYNC,
-// 			Result::Timeout => IDTIMEOUT,
-// 		}
-// 	}
-// }
 
 impl TryFrom<MESSAGEBOX_RESULT> for Result {
 	type Error = MESSAGEBOX_RESULT;

@@ -18,9 +18,9 @@ type AppResult = std::result::Result<(), AppError>;
 
 fn app() -> AppResult {
     let mut quiz = Quiz::new("Current mood");
-    quiz.add_question("Did you wake up early?")
-        .add_question("Did you drink your coffee?")
-        .add_question("Did you pet the katzie?");
+    quiz.add_question("Did you wake up early? 🌄")
+        .add_question("Did you drink your coffee? ☕")
+        .add_question("Did you pet the katzie? 😺");
 
     match quiz.ask_all() {
         Ok(_) => quiz.print_results(),
