@@ -38,10 +38,12 @@ impl Window {
 		let class_name = "my window class".to_wide();
 		let w_title = title.to_wide();
 
+		// get the instance handle
 		let instance = unsafe { GetModuleHandleW(None) };
 		debug_assert_ne!(instance, 0, "failed to get module handle");
 
 		REGISTER_WINDOW_CLASS.call_once(|| {
+			// define a new class for the window
 			let class = WNDCLASSW {
 				hCursor: unsafe { LoadCursorW(0, IDC_ARROW) },
 				hInstance: instance,
@@ -51,31 +53,36 @@ impl Window {
 				..Default::default()
 			};
 
-			debug_assert_ne!(
-				unsafe { RegisterClassW(&class) },
-				0,
-				"failed to register class"
-			);
+			// create the window class
+			let registered = unsafe { RegisterClassW(&class) };
+			debug_assert_ne!(registered, 0, "failed to register class");
 		});
 
 		let mut result = Box::new(Self {});
-		unsafe {
-			use style::*;
+
+		// create window
+		let window = unsafe {
 			CreateWindowExW(
-				Default::default(),             // extra windows styles
-				class_name.as_pwstr(),          // window class
-				w_title.as_pwstr(),             // title
-				OverlappedWindow | Visible,     // style
-				position.x,                     // pos x
-				position.y,                     // pos y
-				dimension.x,                    // width
-				dimension.y,                    // height
-				None,                           // handle parent window
-				None,                           // handle menu
-				instance,                       // instance handle
-				result.as_mut() as *mut _ as _, // result
+				Default::default(),                                        // extended styles
+				class_name.as_pwstr(),                                     // window class
+				w_title.as_pwstr(),                                        // title
+				style::OverlappedWindow | style::VScroll | style::HScroll, // style
+				position.x,                                                // pos x
+				position.y,                                                // pos y
+				dimension.x,                                               // width
+				dimension.y,                                               // height
+				None,                                                      // parent window
+				None,                                                      // menu used
+				instance,                                                  // instance handle
+				result.as_mut() as *mut _ as _,                            // window creation data
 			)
 		};
+		debug_assert_ne!(window, 0, "failed to create window");
+
+		// show the window
+		unsafe { ShowWindow(window, show_cmd::ShowDefault) };
+		// send WM_PAINT message to the window (handled by window_proc set in the window class)
+		unsafe { UpdateWindow(window) };
 
 		Ok(result)
 	}
