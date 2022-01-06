@@ -1,4 +1,4 @@
-use win32_experiments::window::{message, Window};
+use gui::window::{message, Window};
 
 use windows::{
     core::Result,

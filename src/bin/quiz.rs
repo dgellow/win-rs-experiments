@@ -1,4 +1,4 @@
-use win32_experiments::message_box as mbox;
+use gui::message_box as mbox;
 
 use std::io::Write;
 

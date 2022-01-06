@@ -1,9 +1,11 @@
 [package]
-name = "win32_experiments"
+name = "dgellow_win32-experiments"
 version = "0.1.0"
 edition = "2021"
+authors = ["Samuel El-Borai <sam@elborai.me>"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "gui"
 
 [dependencies]
 
