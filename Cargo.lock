@@ -3,7 +3,7 @@
 version = 3
 
 [[package]]
-name = "dgellow_win32-experiments"
+name = "dgellow_win-experiments"
 version = "0.1.0"
 dependencies = [
  "windows",
