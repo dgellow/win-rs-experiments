@@ -91,7 +91,7 @@ impl Window {
 	pub fn handle_events(&self) {
 		let mut message = MSG::default();
 		while unsafe { GetMessageW(&mut message, 0, 0, 0) }.into() {
-			unsafe { DispatchMessageW(&mut message) };
+			unsafe { DispatchMessageW(&message) };
 		}
 	}
 }
