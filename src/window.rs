@@ -1,91 +1,132 @@
-use crate::wide_string::ToWide;
+use crate::display;
+use crate::wide_string::{ToWide, WideString};
 
-use std::sync::Once;
 use windows::{
 	core::Result,
 	Win32::{
-		Foundation::{HWND, LPARAM, LRESULT, WPARAM},
+		Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM},
 		Graphics::Gdi::UpdateWindow,
 		System::LibraryLoader::GetModuleHandleW,
 		UI::WindowsAndMessaging::*,
 	},
 };
 
-static REGISTER_WINDOW_CLASS: Once = Once::new();
+pub struct Class {
+	pub name: WideString,
+	pub h_instance: HINSTANCE,
+}
 
-pub struct Window {}
+impl Class {
+	fn new_impl(class_name: &str, window_proc: Option<WindowProc>) -> Self {
+		// get the instance handle
+		let h_instance = unsafe { GetModuleHandleW(None) };
+		debug_assert_ne!(h_instance, 0, "failed to get module handle");
+
+		let class = Class {
+			name: class_name.to_wide(),
+			h_instance,
+		};
+
+		// define a new class
+		let wnd_class = WNDCLASSEXW {
+			cbSize: std::mem::size_of::<WNDCLASSEXW>()
+				.try_into()
+				.expect("size of WNDCLASSEXW not u32"),
+			style: class_style::HRedraw | class_style::VRedraw,
+			lpfnWndProc: window_proc,
+			hInstance: class.h_instance,
+			hCursor: unsafe { LoadCursorW(0, crate::cursor::Arrow) },
+			lpszClassName: class.name.as_pwstr(),
+			..Default::default()
+		};
+
+		// create the window class
+		let registered = unsafe { RegisterClassExW(&wnd_class) };
+		debug_assert_ne!(registered, 0, "failed to register class");
+
+		class
+	}
+
+	pub fn new(class_name: &str) -> Self {
+		Class::new_impl(class_name, None)
+	}
+
+	pub fn new_with_proc(class_name: &str, window_proc: WindowProc) -> Self {
+		Class::new_impl(class_name, Some(window_proc))
+	}
+
+	pub fn create_window(self, title: &str, position: Point, dimension: Point) -> Window {
+		let mut w = Window::new(title, position, dimension, self);
+		w.create();
+		w
+	}
+}
+
+pub type WindowProc =
+	unsafe extern "system" fn(window: HWND, message: message::Type, WPARAM, LPARAM) -> LRESULT;
+
+pub struct Window {
+	pub class: Class,
+	pub title: String,
+	pub w_title: WideString,
+	pub dimension: Point,
+	pub position: Point,
+	h_window: HWND,
+	created: bool,
+	visible: bool,
+}
 
 impl Window {
-	fn new_impl(
-		title: &str,
-		position: Point,
-		dimension: Point,
-		window_proc: Option<WindowProc>,
-	) -> Result<Box<Self>> {
-		let class_name = "my window class".to_wide();
-		let w_title = title.to_wide();
+	pub fn new(title: &str, position: Point, dimension: Point, class: Class) -> Window {
+		Window {
+			class,
+			title: title.to_owned(),
+			w_title: title.to_wide(),
+			dimension,
+			position,
+			created: Default::default(),
+			visible: Default::default(),
+			h_window: Default::default(),
+		}
+	}
 
-		// get the instance handle
-		let instance = unsafe { GetModuleHandleW(None) };
-		debug_assert_ne!(instance, 0, "failed to get module handle");
-
-		REGISTER_WINDOW_CLASS.call_once(|| {
-			// define a new class for the window
-			use crate::class;
-			let class = WNDCLASSW {
-				hCursor: unsafe { LoadCursorW(0, crate::cursor::Arrow) },
-				hInstance: instance,
-				lpszClassName: class_name.as_pwstr(),
-				style: class::style::HRedraw | class::style::VRedraw,
-				lpfnWndProc: window_proc,
-				..Default::default()
-			};
-
-			// create the window class
-			let registered = unsafe { RegisterClassW(&class) };
-			debug_assert_ne!(registered, 0, "failed to register class");
-		});
-
-		let mut result = Box::new(Self {});
+	pub fn create(&mut self) -> &Window {
+		display!("created window: title={}", self.title);
+		assert!(!self.created, "window already created");
 
 		// create window
-		let window = unsafe {
+		let h_window = unsafe {
 			CreateWindowExW(
 				Default::default(),                                        // extended styles
-				class_name.as_pwstr(),                                     // window class
-				w_title.as_pwstr(),                                        // title
+				self.class.name.as_pwstr(),                                // window class
+				self.w_title.as_pwstr(),                                   // title
 				style::OverlappedWindow | style::VScroll | style::HScroll, // style
-				position.x,                                                // pos x
-				position.y,                                                // pos y
-				dimension.x,                                               // width
-				dimension.y,                                               // height
+				self.position.x,                                           // pos x
+				self.position.y,                                           // pos y
+				self.dimension.x,                                          // width
+				self.dimension.y,                                          // height
 				None,                                                      // parent window
 				None,                                                      // menu used
-				instance,                                                  // instance handle
-				result.as_mut() as *mut _ as _,                            // window creation data
+				self.class.h_instance,                                     // instance handle
+				std::ptr::null(),                                          // window creation data
 			)
 		};
-		debug_assert_ne!(window, 0, "failed to create window");
+		debug_assert_ne!(h_window, 0, "failed to create window");
 
-		// show the window
-		unsafe { ShowWindow(window, show_cmd::ShowDefault) };
+		self.h_window = h_window;
+		self.created = true;
+
+		self
+	}
+
+	pub fn show(&mut self) {
+		unsafe { ShowWindow(self.h_window, show_cmd::ShowDefault) };
+		self.visible = true;
+	}
+
+	pub fn update(&self) {
 		// send WM_PAINT message to the window (handled by window_proc set in the window class)
-		unsafe { UpdateWindow(window) };
-
-		Ok(result)
-	}
-
-	pub fn new(title: &str, position: Point, dimension: Point) -> Result<Box<Self>> {
-		Self::new_impl(title, position, dimension, None)
-	}
-
-	pub fn new_with_proc(
-		title: &str,
-		position: Point,
-		dimension: Point,
-		window_proc: WindowProc,
-	) -> Result<Box<Self>> {
-		Self::new_impl(title, position, dimension, Some(window_proc))
+		unsafe { UpdateWindow(self.h_window) };
 	}
 
 	pub fn handle_events(&self) {
@@ -110,8 +151,26 @@ impl Default for Point {
 	}
 }
 
-pub type WindowProc =
-	unsafe extern "system" fn(window: HWND, message: message::Type, WPARAM, LPARAM) -> LRESULT;
+#[allow(dead_code)]
+#[allow(non_upper_case_globals)]
+pub mod class_style {
+	use windows::Win32::UI::WindowsAndMessaging::*;
+	pub type Type = WNDCLASS_STYLES;
+
+	pub const VRedraw: Type = CS_VREDRAW;
+	pub const HRedraw: Type = CS_HREDRAW;
+	pub const Dblclks: Type = CS_DBLCLKS;
+	pub const OwndC: Type = CS_OWNDC;
+	pub const ClassDc: Type = CS_CLASSDC;
+	pub const ParentDc: Type = CS_PARENTDC;
+	pub const NoClose: Type = CS_NOCLOSE;
+	pub const SaveBits: Type = CS_SAVEBITS;
+	pub const ByteAlignClient: Type = CS_BYTEALIGNCLIENT;
+	pub const ByteAlignWindow: Type = CS_BYTEALIGNWINDOW;
+	pub const GlobalClass: Type = CS_GLOBALCLASS;
+	pub const Ime: Type = CS_IME;
+	pub const DropShadow: Type = CS_DROPSHADOW;
+}
 
 #[allow(dead_code)]
 #[allow(non_upper_case_globals)]
@@ -375,7 +434,7 @@ pub mod message {
 
 #[allow(dead_code)]
 #[allow(non_upper_case_globals)]
-mod show_cmd {
+pub mod show_cmd {
 	use windows::Win32::UI::WindowsAndMessaging::*;
 	pub type Type = SHOW_WINDOW_CMD;
 

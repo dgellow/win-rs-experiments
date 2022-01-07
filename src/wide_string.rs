@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use windows::Win32::Foundation::PWSTR;
 
 pub struct WideString(pub Vec<u16>);
@@ -17,5 +19,11 @@ impl ToWide for &str {
 impl WideString {
 	pub fn as_pwstr(&self) -> PWSTR {
 		PWSTR(self.0.as_ptr() as *mut _)
+	}
+}
+
+impl Default for WideString {
+	fn default() -> Self {
+		Self(Default::default())
 	}
 }
