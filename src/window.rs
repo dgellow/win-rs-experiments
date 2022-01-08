@@ -1,14 +1,11 @@
 use crate::display;
 use crate::wide_string::{ToWide, WideString};
 
-use windows::{
-	core::Result,
-	Win32::{
-		Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM},
-		Graphics::Gdi::UpdateWindow,
-		System::LibraryLoader::GetModuleHandleW,
-		UI::WindowsAndMessaging::*,
-	},
+use windows::Win32::{
+	Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM},
+	Graphics::Gdi::UpdateWindow,
+	System::LibraryLoader::GetModuleHandleW,
+	UI::WindowsAndMessaging::*,
 };
 
 pub struct Class {
