@@ -1,27 +1,32 @@
-use windows::core::Result;
+use gui::assert::Result;
 
 fn main() -> Result<()> {
-	child_window::init();
+	app()
+}
 
-	main_window::init();
-	main_window::create("My Window", Default::default(), Default::default());
+fn app() -> Result<()> {
+	child_window::init()?;
+
+	main_window::init()?;
+	main_window::create("My Window", Default::default(), Default::default())?;
 
 	Ok(())
 }
 
 mod main_window {
 	use gui::{
+		assert::{assert_eq, assert_ne, Result, WithLastWin32Error},
 		display,
 		wide_string::ToWide,
 		window::{class_style, message, show_cmd, style, Point},
 	};
 	use windows::Win32::{
-		Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, PWSTR, RECT, WPARAM},
+		Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
 		Graphics::Gdi::ValidateRect,
 		System::LibraryLoader::GetModuleHandleW,
 		UI::WindowsAndMessaging::{
 			CreateWindowExW, DefWindowProcA, EnumChildWindows, GetClientRect, GetWindowLongW,
-			LoadCursorW, MoveWindow, PostQuitMessage, RegisterClassExW, ShowWindow, GWL_ID, HMENU,
+			LoadCursorW, MoveWindow, PostQuitMessage, RegisterClassExW, ShowWindow, GWL_ID,
 			WNDCLASSEXW,
 		},
 	};
@@ -31,28 +36,36 @@ mod main_window {
 	pub static CLASS_NAME: &str = "MainWindow";
 	static mut H_INSTANCE: Option<HINSTANCE> = None;
 
-	const ID_CHILD_1: i32 = 100;
-	const ID_CHILD_2: i32 = ID_CHILD_1 + 1;
-	const ID_CHILD_3: i32 = ID_CHILD_1 + 2;
+	const NB_CHILD: i32 = 3;
+	const CHILD_BASE_ID: i32 = 100;
 
-	fn assert_init() -> HINSTANCE {
-		unsafe { assert!(H_INSTANCE.is_some(), "main_window not initialized") };
-		unsafe { H_INSTANCE.unwrap() }
+	fn assert_init() -> Result<HINSTANCE> {
+		match unsafe { H_INSTANCE } {
+			Some(instance) => Ok(instance),
+			None => Err("main_window not initialized".into()),
+		}
 	}
 
-	pub fn init() {
-		// check if already initialized
-		unsafe { assert!(H_INSTANCE.is_none(), "main_window already initialized") };
+	fn assert_not_init() -> Result<()> {
+		if unsafe { H_INSTANCE }.is_some() {
+			Err("main_window already initialized".into())
+		} else {
+			Ok(())
+		}
+	}
+
+	pub fn init() -> Result<()> {
+		assert_not_init()?;
 
 		display!("init main_window...");
 
 		// get instance handle
 		let h_instance = unsafe { GetModuleHandleW(None) };
-		assert_ne!(h_instance, 0, "failed to get module handle");
+		assert_ne(h_instance, 0, "failed to get module handle").with_last_win32_err()?;
 
 		// define class
 		let h_cursor = unsafe { LoadCursorW(0, gui::cursor::Arrow) };
-		assert_ne!(h_cursor, 0, "failed to get cursor handle");
+		assert_ne(h_cursor, 0, "failed to get cursor handle").with_last_win32_err()?;
 
 		let size: u32 = std::mem::size_of::<WNDCLASSEXW>()
 			.try_into()
@@ -64,21 +77,23 @@ mod main_window {
 			lpfnWndProc: Some(window_proc),
 			hInstance: h_instance,
 			hCursor: h_cursor,
-			lpszClassName: CLASS_NAME.to_wide().as_pwstr(),
+			lpszClassName: "MyHappyMainWindow".to_wide().as_pwstr(), // CLASS_NAME.to_wide().as_pwstr(),
 			..Default::default()
 		};
 
 		// register class
 		let class = unsafe { RegisterClassExW(&wnd_class) };
-		assert_ne!(class, 0, "failed to register class");
+		assert_ne(class, 0, "failed to register class").with_last_win32_err()?;
 
 		display!("main_window initialized.");
 
 		unsafe { H_INSTANCE = Some(h_instance) };
+
+		Ok(())
 	}
 
-	pub fn create(title: &str, position: Point, dimension: Point) {
-		let h_instance = assert_init();
+	pub fn create(title: &str, position: Point, dimension: Point) -> Result<()> {
+		let h_instance = assert_init()?;
 
 		display!("create main_window...");
 
@@ -99,15 +114,19 @@ mod main_window {
 				std::ptr::null(),
 			)
 		};
-		assert_ne!(h_window, 0, "failed to create main window");
+		assert_ne(h_window, 0, "failed to create main window").with_last_win32_err()?;
 
 		// show window
-		assert!(
-			unsafe { ShowWindow(h_window, show_cmd::Show) }.as_bool(),
-			"failed to show main window"
-		);
+		assert_eq(
+			unsafe { ShowWindow(h_window, show_cmd::Show) },
+			BOOL(1),
+			"failed to show main window",
+		)
+		.with_last_win32_err()?;
 
 		display!("main_window created.");
+
+		Ok(())
 	}
 
 	extern "system" fn window_proc(
@@ -116,7 +135,7 @@ mod main_window {
 		wparam: WPARAM,
 		lparam: LPARAM,
 	) -> LRESULT {
-		let h_instance = assert_init();
+		// let h_instance = assert_init().unwrap();
 		let mut rect: Box<RECT> = Box::new(Default::default());
 
 		match message as message::Type {
@@ -130,34 +149,11 @@ mod main_window {
 			message::Create => {
 				println!("WM_CREATE");
 
-				for i in 0..3 {
-					display!("create child #{}", i + 1);
-					let h_menu: HMENU = (ID_CHILD_1 + i).try_into().unwrap();
-					let title: PWSTR = Default::default(); // null
-
-					let class_name = child_window::CLASS_NAME.to_wide();
-					let child = unsafe {
-						CreateWindowExW(
-							Default::default(),
-							class_name.as_pwstr(),
-							title,
-							style::Child | style::Border,
-							0,
-							0,
-							0,
-							0,
-							None,
-							h_menu,
-							h_instance,
-							std::ptr::null(),
-						)
-					};
-
-					assert!(
-						unsafe { ShowWindow(child, show_cmd::Show) }.as_bool(),
-						"failed to show child window #{}",
-						i + 1,
-					);
+				for i in 0..NB_CHILD {
+					let child_id = CHILD_BASE_ID + i;
+					display!("create child #{} ...", child_id);
+					child_window::create(window, child_id).unwrap();
+					display!("child #{} created.", child_id);
 				}
 				0
 			}
@@ -184,19 +180,13 @@ mod main_window {
 		display!("enumerate children");
 
 		let id_child = unsafe { GetWindowLongW(child, GWL_ID) };
-
-		let i = match id_child {
-			ID_CHILD_1 => 0,
-			ID_CHILD_2 => 1,
-			ID_CHILD_3 => 2,
-			unknown => panic!("unexpected child id: {}", unknown),
-		};
+		let idx_child = id_child - CHILD_BASE_ID;
 
 		let parent = lparam as *mut RECT;
 		unsafe {
 			MoveWindow(
 				child,
-				((*parent).right / 3) * i,
+				((*parent).right / 3) * idx_child,
 				0,
 				(*parent).right / 3,
 				(*parent).bottom,
@@ -204,39 +194,62 @@ mod main_window {
 			)
 		};
 
-		assert!(
-			unsafe { ShowWindow(child, show_cmd::Show) }.as_bool(),
-			"failed to show child window"
-		);
+		assert_eq(
+			unsafe { ShowWindow(child, show_cmd::Show) },
+			BOOL(1),
+			"failed to show child window",
+		)
+		.with_last_win32_err()
+		.unwrap();
 
 		BOOL(1)
 	}
 }
 
 mod child_window {
-	use gui::{display, wide_string::ToWide, window::class_style};
+	use gui::{
+		assert::{assert_eq, assert_ne, Result, WithLastWin32Error},
+		display,
+		wide_string::ToWide,
+		window::{class_style, show_cmd, style},
+	};
 	use windows::Win32::{
-		Foundation::HINSTANCE,
+		Foundation::{BOOL, HINSTANCE, HWND, PWSTR},
 		System::LibraryLoader::GetModuleHandleW,
-		UI::WindowsAndMessaging::{LoadCursorW, RegisterClassExW, WNDCLASSEXW},
+		UI::WindowsAndMessaging::{
+			CreateWindowExW, LoadCursorW, RegisterClassExW, ShowWindow, HMENU, WNDCLASSEXW,
+		},
 	};
 
 	pub static CLASS_NAME: &str = "ChildWindow";
 	static mut H_INSTANCE: Option<HINSTANCE> = None;
 
-	pub fn init() {
-		// check if already initialized
-		unsafe { assert!(H_INSTANCE.is_none(), "main_window already initialized") };
+	fn assert_init() -> Result<HINSTANCE> {
+		match unsafe { H_INSTANCE } {
+			Some(instance) => Ok(instance),
+			None => Err("child_window not initialized".into()),
+		}
+	}
+
+	fn assert_not_init() -> Result<()> {
+		match unsafe { H_INSTANCE } {
+			Some(_) => Err("child_window already initialized".into()),
+			None => Ok(()),
+		}
+	}
+
+	pub fn init() -> Result<()> {
+		assert_not_init()?;
 
 		display!("init child_window...");
 
 		// get instance handle
 		let h_instance = unsafe { GetModuleHandleW(None) };
-		assert_ne!(h_instance, 0, "failed to get module handle");
+		assert_ne(h_instance, 0, "failed to get module handle").with_last_win32_err()?;
 
 		// define class
 		let h_cursor = unsafe { LoadCursorW(0, gui::cursor::Arrow) };
-		assert_ne!(h_cursor, 0, "failed to get cursor handle");
+		assert_ne(h_cursor, 0, "failed to get cursor handle").with_last_win32_err()?;
 
 		let size: u32 = std::mem::size_of::<WNDCLASSEXW>()
 			.try_into()
@@ -248,16 +261,65 @@ mod child_window {
 			lpfnWndProc: None,
 			hInstance: h_instance,
 			hCursor: h_cursor,
-			lpszClassName: CLASS_NAME.to_wide().as_pwstr(),
+			lpszClassName: "MyHappyChildClass".to_wide().as_pwstr(), // CLASS_NAME.to_wide().as_pwstr(),
 			..Default::default()
 		};
 
 		// register class
 		let class = unsafe { RegisterClassExW(&wnd_class) };
-		assert_ne!(class, 0, "failed to register class");
+		assert_ne(class, 0, "failed to register class").with_last_win32_err()?;
 
 		display!("child_window initialized.");
 
 		unsafe { H_INSTANCE = Some(h_instance) };
+
+		Ok(())
+	}
+
+	pub fn create(parent: HWND, child_id: i32) -> Result<()> {
+		let h_instance = assert_init()?;
+
+		let h_menu: HMENU = child_id.try_into().unwrap();
+		let title: PWSTR = Default::default(); // null
+
+		display!(
+			"child_window::create: create window for child #{:#?} in parent window {:#?} with h_instance {:#?}...",
+			child_id,
+			parent,
+			h_instance
+		);
+
+		let child = unsafe {
+			CreateWindowExW(
+				Default::default(),
+				CLASS_NAME.to_wide().as_pwstr(),
+				title,
+				style::Child | style::Border,
+				0,
+				0,
+				0,
+				0,
+				parent,
+				h_menu,
+				h_instance,
+				std::ptr::null(),
+			)
+		};
+		display!("child_window::create: window for child created.");
+
+		assert_ne(child, 0, "failed to create child window").with_last_win32_err()?;
+
+		display!("show child #{}...", child_id);
+
+		assert_eq(
+			unsafe { ShowWindow(child, show_cmd::Show) },
+			BOOL(1),
+			format!("failed to show child window #{}", child_id).as_str(),
+		)
+		.with_last_win32_err()?;
+
+		display!("child #{} shown.", child_id);
+
+		Ok(())
 	}
 }
