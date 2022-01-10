@@ -460,7 +460,40 @@ pub mod show_cmd {
 	pub const SmoothScroll: Type = SW_SMOOTHSCROLL;
 }
 
-pub mod ex_style {}
+#[allow(dead_code)]
+#[allow(non_upper_case_globals)]
+pub mod ex_style {
+	use windows::Win32::UI::WindowsAndMessaging::*;
+	pub type Type = WINDOW_EX_STYLE;
+
+	pub const DlgModalFrame: Type = WS_EX_DLGMODALFRAME;
+	pub const NoParentNotify: Type = WS_EX_NOPARENTNOTIFY;
+	pub const TopMost: Type = WS_EX_TOPMOST;
+	pub const AcceptFiles: Type = WS_EX_ACCEPTFILES;
+	pub const Transparent: Type = WS_EX_TRANSPARENT;
+	pub const MdiChild: Type = WS_EX_MDICHILD;
+	pub const ToolWindow: Type = WS_EX_TOOLWINDOW;
+	pub const WindowEdge: Type = WS_EX_WINDOWEDGE;
+	pub const ClientEdge: Type = WS_EX_CLIENTEDGE;
+	pub const ContextHelp: Type = WS_EX_CONTEXTHELP;
+	pub const Right: Type = WS_EX_RIGHT;
+	pub const Left: Type = WS_EX_LEFT;
+	pub const RtlReading: Type = WS_EX_RTLREADING;
+	pub const LtrReading: Type = WS_EX_LTRREADING;
+	pub const LeftScrollbar: Type = WS_EX_LEFTSCROLLBAR;
+	pub const RightScrollbar: Type = WS_EX_RIGHTSCROLLBAR;
+	pub const ControlParent: Type = WS_EX_CONTROLPARENT;
+	pub const StaticEdge: Type = WS_EX_STATICEDGE;
+	pub const AppWindow: Type = WS_EX_APPWINDOW;
+	pub const OverlappedWindow: Type = WS_EX_OVERLAPPEDWINDOW;
+	pub const PaletteWindow: Type = WS_EX_PALETTEWINDOW;
+	pub const Layered: Type = WS_EX_LAYERED;
+	pub const NoInheritLayout: Type = WS_EX_NOINHERITLAYOUT;
+	pub const NoRedirectionBitmap: Type = WS_EX_NOREDIRECTIONBITMAP;
+	pub const LayoutRtl: Type = WS_EX_LAYOUTRTL;
+	pub const Composited: Type = WS_EX_COMPOSITED;
+	pub const NoActivate: Type = WS_EX_NOACTIVATE;
+}
 
 #[allow(dead_code)]
 #[allow(non_upper_case_globals)]
