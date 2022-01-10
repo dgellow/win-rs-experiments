@@ -43,7 +43,7 @@ mod main_window {
 	};
 
 	const CLASS_NAME: &str = "MainWindow";
-	const TITLE: &str = "Hello World Win32";
+	const TITLE: &str = "Hello World 1 — Win32 💖 Rust";
 	static mut H_INSTANCE: Option<HINSTANCE> = None;
 
 	fn assert_init() -> Result<HINSTANCE> {
@@ -70,7 +70,6 @@ mod main_window {
 			"failed to get module handle",
 		)
 		.with_last_win32_err()?;
-		assert_ne(h_instance, 0, "module handle should not be empty")?;
 
 		let size: u32 = std::mem::size_of::<WNDCLASSEXW>()
 			.try_into()

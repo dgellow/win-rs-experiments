@@ -5,9 +5,9 @@ fn main() -> Result<()> {
 }
 
 fn app() -> Result<()> {
+	main_window::init()?;
 	child_window::init()?;
 
-	main_window::init()?;
 	main_window::create("My Window", Default::default(), Default::default())?;
 
 	Ok(())
@@ -21,12 +21,12 @@ mod main_window {
 		window::{class_style, message, show_cmd, style, Point},
 	};
 	use windows::Win32::{
-		Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
+		Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, PWSTR, RECT, WPARAM},
 		Graphics::Gdi::ValidateRect,
 		System::LibraryLoader::GetModuleHandleW,
 		UI::WindowsAndMessaging::{
 			CreateWindowExW, DefWindowProcA, EnumChildWindows, GetClientRect, GetWindowLongW,
-			LoadCursorW, MoveWindow, PostQuitMessage, RegisterClassExW, ShowWindow, GWL_ID,
+			LoadCursorW, MoveWindow, PostQuitMessage, RegisterClassExW, ShowWindow, GWL_ID, HMENU,
 			WNDCLASSEXW,
 		},
 	};
@@ -77,7 +77,7 @@ mod main_window {
 			lpfnWndProc: Some(window_proc),
 			hInstance: h_instance,
 			hCursor: h_cursor,
-			lpszClassName: "MyHappyMainWindow".to_wide().as_pwstr(), // CLASS_NAME.to_wide().as_pwstr(),
+			lpszClassName: CLASS_NAME.to_wide().as_pwstr(),
 			..Default::default()
 		};
 
@@ -111,7 +111,7 @@ mod main_window {
 				None,
 				None,
 				h_instance,
-				std::ptr::null(),
+				std::ptr::null_mut(),
 			)
 		};
 		assert_ne(h_window, 0, "failed to create main window").with_last_win32_err()?;
@@ -135,7 +135,7 @@ mod main_window {
 		wparam: WPARAM,
 		lparam: LPARAM,
 	) -> LRESULT {
-		// let h_instance = assert_init().unwrap();
+		let h_instance = assert_init().unwrap();
 		let mut rect: Box<RECT> = Box::new(Default::default());
 
 		match message as message::Type {
@@ -149,12 +149,37 @@ mod main_window {
 			message::Create => {
 				println!("WM_CREATE");
 
-				for i in 0..NB_CHILD {
-					let child_id = CHILD_BASE_ID + i;
-					display!("create child #{} ...", child_id);
-					child_window::create(window, child_id).unwrap();
-					display!("child #{} created.", child_id);
-				}
+				let child_id = CHILD_BASE_ID;
+				let h_menu: HMENU = child_id.try_into().unwrap();
+				let null_title: PWSTR = Default::default(); // defaults to null
+
+				let child = unsafe {
+					CreateWindowExW(
+						Default::default(),
+						child_window::CLASS_NAME.to_wide().as_pwstr(),
+						null_title,
+						style::Child | style::Border,
+						0,
+						0,
+						0,
+						0,
+						window,
+						h_menu,
+						h_instance,
+						std::ptr::null_mut(),
+					)
+				};
+				assert_ne(child, 0, "failed to create child window")
+					.with_last_win32_err()
+					.unwrap();
+				display!("child_window::create: window for child created.");
+
+				// for i in 0..NB_CHILD {
+				// 	let child_id = CHILD_BASE_ID + i;
+				// 	display!("create child #{} ...", child_id);
+				// 	child_window::create(window, child_id).unwrap();
+				// 	display!("child #{} created.", child_id);
+				// }
 				0
 			}
 
@@ -261,7 +286,7 @@ mod child_window {
 			lpfnWndProc: None,
 			hInstance: h_instance,
 			hCursor: h_cursor,
-			lpszClassName: "MyHappyChildClass".to_wide().as_pwstr(), // CLASS_NAME.to_wide().as_pwstr(),
+			lpszClassName: CLASS_NAME.to_wide().as_pwstr(),
 			..Default::default()
 		};
 
@@ -280,7 +305,7 @@ mod child_window {
 		let h_instance = assert_init()?;
 
 		let h_menu: HMENU = child_id.try_into().unwrap();
-		let title: PWSTR = Default::default(); // null
+		let null_title: PWSTR = Default::default(); // defaults to null
 
 		display!(
 			"child_window::create: create window for child #{:#?} in parent window {:#?} with h_instance {:#?}...",
@@ -293,7 +318,7 @@ mod child_window {
 			CreateWindowExW(
 				Default::default(),
 				CLASS_NAME.to_wide().as_pwstr(),
-				title,
+				null_title,
 				style::Child | style::Border,
 				0,
 				0,
