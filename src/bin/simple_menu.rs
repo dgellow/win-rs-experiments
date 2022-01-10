@@ -34,7 +34,7 @@ mod main_window {
 		UI::WindowsAndMessaging::{
 			AppendMenuW, CreateMenu, CreatePopupMenu, CreateWindowExW, DefWindowProcW,
 			DispatchMessageW, GetMessageW, LoadIconW, PostQuitMessage, RegisterClassExW, SetMenu,
-			ShowWindow, TranslateMessage, COLOR_3DFACE, COLOR_BACKGROUND, MSG,
+			ShowWindow, TranslateMessage, COLOR_BACKGROUND, MSG,
 		},
 	};
 	use windows::Win32::{
@@ -50,7 +50,6 @@ mod main_window {
 	static mut H_INSTANCE: Option<HINSTANCE> = None;
 
 	const IDM_FILE_NEW: usize = 1;
-	// const IDM_FILE_IMPORT: usize = 2;
 
 	const IDM_IMPORT_MAIL: usize = 11;
 
