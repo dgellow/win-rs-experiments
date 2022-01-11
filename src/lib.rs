@@ -6,5 +6,6 @@ pub mod debug;
 pub mod icon;
 pub mod menu;
 pub mod message_box;
+pub mod rich_edit;
 pub mod wide_string;
 pub mod window;
