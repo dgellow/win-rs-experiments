@@ -94,7 +94,7 @@ mod main_window {
 
 		let wnd_class = WNDCLASSEXW {
 			cbSize: size,
-			style: class_style::HRedraw | class_style::VRedraw,
+			style: class_style::HRedraw.0 | class_style::VRedraw.0,
 			lpfnWndProc: Some(win_proc),
 			cbClsExtra: 0,
 			cbWndExtra: 0,

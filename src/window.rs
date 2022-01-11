@@ -24,21 +24,21 @@ impl Default for Point {
 #[allow(non_upper_case_globals)]
 pub mod class_style {
 	use windows::Win32::UI::WindowsAndMessaging::*;
-	pub type Type = WNDCLASS_STYLES;
+	pub struct Type(pub WNDCLASS_STYLES);
 
-	pub const VRedraw: Type = CS_VREDRAW;
-	pub const HRedraw: Type = CS_HREDRAW;
-	pub const Dblclks: Type = CS_DBLCLKS;
-	pub const OwndC: Type = CS_OWNDC;
-	pub const ClassDc: Type = CS_CLASSDC;
-	pub const ParentDc: Type = CS_PARENTDC;
-	pub const NoClose: Type = CS_NOCLOSE;
-	pub const SaveBits: Type = CS_SAVEBITS;
-	pub const ByteAlignClient: Type = CS_BYTEALIGNCLIENT;
-	pub const ByteAlignWindow: Type = CS_BYTEALIGNWINDOW;
-	pub const GlobalClass: Type = CS_GLOBALCLASS;
-	pub const Ime: Type = CS_IME;
-	pub const DropShadow: Type = CS_DROPSHADOW;
+	pub const VRedraw: Type = Type(CS_VREDRAW);
+	pub const HRedraw: Type = Type(CS_HREDRAW);
+	pub const Dblclks: Type = Type(CS_DBLCLKS);
+	pub const OwndC: Type = Type(CS_OWNDC);
+	pub const ClassDc: Type = Type(CS_CLASSDC);
+	pub const ParentDc: Type = Type(CS_PARENTDC);
+	pub const NoClose: Type = Type(CS_NOCLOSE);
+	pub const SaveBits: Type = Type(CS_SAVEBITS);
+	pub const ByteAlignClient: Type = Type(CS_BYTEALIGNCLIENT);
+	pub const ByteAlignWindow: Type = Type(CS_BYTEALIGNWINDOW);
+	pub const GlobalClass: Type = Type(CS_GLOBALCLASS);
+	pub const Ime: Type = Type(CS_IME);
+	pub const DropShadow: Type = Type(CS_DROPSHADOW);
 }
 
 #[allow(dead_code)]
