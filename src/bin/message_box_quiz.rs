@@ -1,4 +1,4 @@
-use gui::message_box as mbox;
+use gui::{display, err_display, message_box as mbox};
 
 use std::io::Write;
 
@@ -7,7 +7,7 @@ fn main() {
 		Ok(_) => (),
 		Err(e) => {
 			if let Some(err) = e.downcast_ref::<mbox::MessageBoxError>() {
-				eprintln!("plop: {}", err);
+				err_display!("boom: {}", err);
 			}
 		}
 	}
@@ -50,9 +50,9 @@ impl Quiz {
 	}
 
 	fn print_results(&self) -> std::io::Result<()> {
-		println!("—— Quiz: {} ——", self.title.to_string());
+		display!("—— Quiz: {} ——", self.title.to_string());
 		for (i, resp) in self.responses.iter().enumerate() {
-			println!("Response {}: {}", i + 1, resp.unwrap());
+			display!("Response {}: {}", i + 1, resp.unwrap());
 		}
 		std::io::stdout().flush()?;
 		Ok(())
@@ -66,9 +66,9 @@ impl Quiz {
 			}
 		});
 
-		println!("—— Quiz: {} ——", self.title.to_string());
-		println!("Only partially answered, the user");
-		println!(" cancelled after {} questions.", answered);
+		display!("—— Quiz: {} ——", self.title.to_string());
+		display!("Only partially answered, the user");
+		display!(" cancelled after {} questions.", answered);
 		std::io::stdout().flush()?;
 		Ok(())
 	}

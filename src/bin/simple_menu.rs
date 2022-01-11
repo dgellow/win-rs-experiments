@@ -1,12 +1,12 @@
 // Based on example "A simple menu" from https://zetcode.com/gui/winapi/menus/
 
-use gui::{assert::Result, display};
+use gui::{assert::Result, display, err_display};
 
 fn main() -> std::result::Result<(), ()> {
 	match app() {
 		Ok(_) => Ok(()),
 		Err(e) => {
-			eprintln!("App error: {}", e);
+			err_display!("App error: {}", e);
 			Err(())
 		}
 	}

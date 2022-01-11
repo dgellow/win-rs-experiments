@@ -1,10 +1,10 @@
-use gui::{assert::Result, display};
+use gui::{assert::Result, display, err_display};
 
 fn main() -> std::result::Result<(), ()> {
 	match app() {
 		Ok(_) => Ok(()),
 		Err(e) => {
-			eprintln!("App error: {}", e);
+			err_display!("App error: {}", e);
 			Err(())
 		}
 	}
@@ -28,7 +28,7 @@ mod main_window {
 	};
 	use windows::Win32::{
 		Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, WPARAM},
-		Graphics::Gdi::{UpdateWindow, HBRUSH},
+		Graphics::Gdi::{UpdateWindow, ValidateRect, HBRUSH},
 		System::LibraryLoader::GetModuleHandleExW,
 		UI::WindowsAndMessaging::{
 			CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW, LoadCursorW, LoadIconW,
@@ -151,9 +151,12 @@ mod main_window {
 		wparam: WPARAM,
 		lparam: LPARAM,
 	) -> LRESULT {
+		let _h_instance = assert_init().unwrap();
+
 		match message {
 			message::Paint => {
 				display!("WM_PAINT");
+				unsafe { ValidateRect(window, std::ptr::null()) };
 			}
 			message::Create => {
 				display!("WM_CREATE");

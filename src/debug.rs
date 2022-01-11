@@ -10,3 +10,16 @@ macro_rules! display {
         }
     }
 }
+
+#[macro_export]
+macro_rules! err_display {
+	( $($t:tt)* ) => {
+		{
+			use std::io::Write;
+            let mut err = std::io::stderr();
+            write!(err, $($t)* ).unwrap();
+			write!(err, "\n").unwrap();
+            err.flush().unwrap();
+        }
+    }
+}
