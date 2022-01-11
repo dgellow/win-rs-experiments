@@ -107,7 +107,7 @@ mod main_window {
 		let h_instance = assert_init()?;
 
 		let position: Point = Default::default();
-		let dimension = Point { x: 500, y: 100 };
+		let dimension = Point { x: 500, y: 400 };
 
 		let h_window = unsafe {
 			CreateWindowExW(
