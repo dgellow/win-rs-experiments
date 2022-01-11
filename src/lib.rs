@@ -1,5 +1,6 @@
 pub mod assert;
 pub mod class;
+pub mod color;
 pub mod cursor;
 pub mod debug;
 pub mod icon;
