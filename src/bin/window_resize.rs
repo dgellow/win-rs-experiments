@@ -28,14 +28,13 @@ mod main_window {
 		window::{class_style, ex_style, message, show_cmd, style, Point},
 	};
 	use windows::Win32::{
-		Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, PWSTR, RECT, WPARAM},
-		Graphics::Gdi::{UpdateWindow, ValidateRect, HBRUSH},
+		Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
+		Graphics::Gdi::{UpdateWindow, HBRUSH},
 		System::LibraryLoader::GetModuleHandleExW,
 		UI::WindowsAndMessaging::{
 			CreateWindowExW, DefWindowProcW, DispatchMessageW, EnumChildWindows, GetClientRect,
 			GetMessageW, GetWindowLongW, LoadCursorW, LoadIconW, MoveWindow, PostQuitMessage,
-			RegisterClassExW, ShowWindow, TranslateMessage, COLOR_WINDOW, GWL_ID, HMENU, MSG,
-			WNDCLASSEXW,
+			RegisterClassExW, ShowWindow, TranslateMessage, COLOR_WINDOW, GWL_ID, MSG, WNDCLASSEXW,
 		},
 	};
 
@@ -158,25 +157,17 @@ mod main_window {
 		wparam: WPARAM,
 		lparam: LPARAM,
 	) -> LRESULT {
-		let h_instance = assert_init().unwrap();
+		let _h_instance = assert_init().unwrap();
 
 		match message {
-			message::Paint => {
-				display!("WM_PAINT");
-				unsafe { ValidateRect(window, std::ptr::null()) };
-			}
-
+			message::Paint => display!("WM_PAINT"),
 			message::Create => {
 				display!("WM_CREATE");
 				for i in 0..NB_CHILD {
 					let child_id = CHILD_BASE_ID + i;
-					display!("create child #{} ...", child_id);
 					child_window::create(window, child_id).unwrap();
-					display!("child #{} created.", child_id);
 				}
 			}
-
-			// size changed
 			message::Size => {
 				display!("WM_SIZE");
 
@@ -196,8 +187,6 @@ mod main_window {
 	}
 
 	extern "system" fn enum_child_proc(child: HWND, lparam: LPARAM) -> BOOL {
-		display!("enumerate children");
-
 		let id_child = unsafe { GetWindowLongW(child, GWL_ID) };
 		let idx_child = id_child - CHILD_BASE_ID;
 
@@ -221,13 +210,12 @@ mod main_window {
 
 mod child_window {
 	use gui::{
-		assert::{assert_eq, assert_ne, Result, WithLastWin32Error},
-		display,
+		assert::{assert_ne, Result, WithLastWin32Error},
 		wide_string::ToWide,
 		window::{class_style, message, show_cmd, style},
 	};
 	use windows::Win32::{
-		Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, PWSTR, WPARAM},
+		Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, PWSTR, WPARAM},
 		System::LibraryLoader::GetModuleHandleW,
 		UI::WindowsAndMessaging::{
 			CreateWindowExW, DefWindowProcW, LoadCursorW, RegisterClassExW, ShowWindow, HMENU,
@@ -255,8 +243,6 @@ mod child_window {
 	pub fn init() -> Result<()> {
 		assert_not_init()?;
 
-		display!("init child_window...");
-
 		// get instance handle
 		let h_instance = unsafe { GetModuleHandleW(None) };
 		assert_ne(h_instance, 0, "failed to get module handle").with_last_win32_err()?;
@@ -283,8 +269,6 @@ mod child_window {
 		let class = unsafe { RegisterClassExW(&wnd_class) };
 		assert_ne(class, 0, "failed to register class").with_last_win32_err()?;
 
-		display!("child_window initialized.");
-
 		unsafe { H_INSTANCE = Some(h_instance) };
 
 		Ok(())
@@ -295,13 +279,6 @@ mod child_window {
 
 		let h_menu: HMENU = child_id.try_into().unwrap();
 		let null_title: PWSTR = Default::default(); // defaults to null
-
-		display!(
-			"child_window::create: create window for child #{:#?} in parent window {:#?} with h_instance {:#?}...",
-			child_id,
-			parent,
-			h_instance
-		);
 
 		let child = unsafe {
 			CreateWindowExW(
@@ -319,15 +296,9 @@ mod child_window {
 				std::ptr::null(),
 			)
 		};
-		display!("child_window::create: window for child created.");
-
 		assert_ne(child, 0, "failed to create child window").with_last_win32_err()?;
 
-		display!("show child #{}...", child_id);
-
 		unsafe { ShowWindow(child, show_cmd::Show) };
-
-		display!("child #{} shown.", child_id);
 
 		Ok(())
 	}
