@@ -32,9 +32,10 @@ mod main_window {
 		Graphics::Gdi::{UpdateWindow, ValidateRect, HBRUSH},
 		System::LibraryLoader::GetModuleHandleExW,
 		UI::WindowsAndMessaging::{
-			CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW, LoadCursorW, LoadIconW,
-			PostQuitMessage, RegisterClassExW, ShowWindow, TranslateMessage, COLOR_WINDOW,
-			CREATESTRUCTW, MSG, WNDCLASSEXW,
+			CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW, GetWindowLongPtrW,
+			LoadCursorW, LoadIconW, PostQuitMessage, RegisterClassExW, SetWindowLongPtrW,
+			ShowWindow, TranslateMessage, COLOR_WINDOW, CREATESTRUCTW, GWLP_USERDATA, MSG,
+			WNDCLASSEXW,
 		},
 	};
 
@@ -175,24 +176,41 @@ mod main_window {
 	) -> LRESULT {
 		let _h_instance = assert_init().unwrap();
 
+		let state_info: *mut StateInfo;
+		if message == message::Create {
+			unsafe {
+				display!("WM_CREATE");
+				// 4. lparam of VM_CREATE message is a pointer to CREATESTRUCT
+				let create_struct = lparam as *mut CREATESTRUCTW;
+
+				// 5. get passed data from lpCreateParams
+				state_info = (*create_struct).lpCreateParams as *mut StateInfo;
+				display!("state_info during creation: {:?}", *state_info);
+
+				// 6. set window USER_DATA to our data pointer
+				SetWindowLongPtrW(window, GWLP_USERDATA, state_info as _);
+
+				// 7. modify data
+				(*state_info).info = "how are you?".to_owned();
+			}
+		} else {
+			// 8. get our data pointer from window USER_DATA
+			let ptr = unsafe { GetWindowLongPtrW(window, GWLP_USERDATA) };
+			state_info = ptr as *mut _;
+		}
+
+		// 9. before dereferencing, ensure we have a pointer to actual data
+		if !state_info.is_null() {
+			unsafe {
+				// 10. use our data
+				display!("state_info from win_proc: {:?}", *state_info);
+			}
+		}
+
 		match message {
 			message::Paint => {
 				display!("WM_PAINT");
 				unsafe { ValidateRect(window, std::ptr::null()) };
-			}
-			message::Create => {
-				display!("WM_CREATE");
-				unsafe {
-					// 4. lparam of VM_CREATE message is a pointer to CREATESTRUCT
-					let create_struct = lparam as *mut CREATESTRUCTW;
-
-					// 5. get passed data from lpCreateParams
-					let state_info = (*create_struct).lpCreateParams as *mut StateInfo;
-					display!("state_info during creation: {:?}", *state_info);
-
-					// 6. modify data
-					(*state_info).info = "how are you?".to_owned();
-				}
 			}
 			message::Destroy => {
 				display!("WM_DESTROY");
