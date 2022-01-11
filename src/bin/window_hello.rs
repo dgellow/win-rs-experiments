@@ -161,31 +161,27 @@ mod main_window {
 
 		let hdc: HDC;
 		let greeting = "Hello, windows desktop, from rust!";
-		// TCHAR greeting[] = _T("Hello, Windows desktop!");
 
 		match message {
-			message::Paint => {
-				unsafe {
-					hdc = BeginPaint(window, paint_ptr);
-					TextOutW(
-						hdc,
-						5,
-						5,
-						greeting,
-						greeting
-							.len()
-							.try_into()
-							.expect("failed to convert len() to i32"),
-					);
-					EndPaint(window, paint_ptr);
-				}
-				0
-			}
+			message::Paint => unsafe {
+				hdc = BeginPaint(window, paint_ptr);
+				TextOutW(
+					hdc,
+					5,
+					5,
+					greeting,
+					greeting
+						.len()
+						.try_into()
+						.expect("failed to convert len() to i32"),
+				);
+				EndPaint(window, paint_ptr);
+			},
 			message::Destroy => {
 				unsafe { PostQuitMessage(0) };
-				0
 			}
-			_ => unsafe { DefWindowProcW(window, message, wparam, lparam) },
+			_ => {}
 		}
+		unsafe { DefWindowProcW(window, message, wparam, lparam) }
 	}
 }
