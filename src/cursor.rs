@@ -11,7 +11,7 @@ pub fn load_cursor(cursor: Type) -> Result<HCURSOR> {
 	Ok(h_cursor)
 }
 
-type Type = PWSTR;
+pub type Type = PWSTR;
 pub const AppStarting: Type = IDC_APPSTARTING;
 pub const Arrow: Type = IDC_ARROW;
 pub const Cross: Type = IDC_CROSS;

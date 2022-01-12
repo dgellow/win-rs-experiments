@@ -1,21 +1,177 @@
+use crate::{
+	assert::{assert_eq, assert_ne, Result, WithLastWin32Error},
+	cursor::{self, load_cursor},
+	display,
+	icon::{self, load_icon, Icon},
+	wide_string::ToWide,
+	Point,
+};
 use windows::Win32::{
-	Foundation::{HWND, LPARAM, LRESULT, WPARAM},
+	Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, WPARAM},
+	Graphics::Gdi::{UpdateWindow, HBRUSH},
+	System::LibraryLoader::GetModuleHandleExW,
 	UI::WindowsAndMessaging::*,
 };
 
 pub type WindowProc =
 	unsafe extern "system" fn(window: HWND, message: message::Type, WPARAM, LPARAM) -> LRESULT;
 
-pub struct Point {
-	pub x: i32,
-	pub y: i32,
+pub enum MessageAction {
+	Continue,
+	FullyHandled,
+	Failed,
 }
 
-impl Default for Point {
+pub struct Options {
+	pub icon: Icon,
+	pub cursor: cursor::Type,
+	pub bg_brush: u32,
+}
+
+impl Default for Options {
 	fn default() -> Self {
 		Self {
-			x: CW_USEDEFAULT,
-			y: CW_USEDEFAULT,
+			icon: icon::Application,
+			cursor: cursor::Arrow,
+			bg_brush: COLOR_WINDOW + 1,
+		}
+	}
+}
+
+pub trait WindowBase
+where
+	Self: Sized,
+{
+	fn init_state(h_instance: HINSTANCE) -> Self;
+	fn h_instance(&self) -> HINSTANCE;
+	fn on_message(
+		&self,
+		h_window: HWND,
+		message: message::Type,
+		wparam: WPARAM,
+		lparam: LPARAM,
+	) -> MessageAction;
+
+	fn new(class_name: &str, title: &str, options: Option<Options>) -> Result<Self>
+	where
+		Self: Sized,
+	{
+		let opts = options.unwrap_or_default();
+
+		let mut h_instance: HINSTANCE = Default::default();
+		assert_eq(
+			unsafe { GetModuleHandleExW(0, None, &mut h_instance as *mut _) },
+			BOOL(1),
+			"failed to get module handle",
+		)
+		.with_last_win32_err()?;
+
+		let size: u32 = std::mem::size_of::<WNDCLASSEXW>()
+			.try_into()
+			.expect("WNDCLASSEXW size not u32");
+
+		let icon = load_icon(opts.icon)?;
+		let cursor = load_cursor(opts.cursor)?;
+
+		let brush: HBRUSH = opts
+			.bg_brush
+			.try_into()
+			.expect("cannot convert color to HBRUSH");
+
+		let wnd_class = WNDCLASSEXW {
+			cbSize: size,
+			style: class_style::HRedraw.0 | class_style::VRedraw.0,
+			lpfnWndProc: Some(Self::win_proc),
+			cbClsExtra: 0,
+			cbWndExtra: 0,
+			hInstance: h_instance,
+			hIcon: icon,
+			hCursor: cursor,
+			hbrBackground: brush,
+			lpszMenuName: Default::default(), // defaults to null
+			lpszClassName: class_name.to_wide().as_pwstr(),
+			hIconSm: icon,
+		};
+
+		let class = unsafe { RegisterClassExW(&wnd_class) };
+		assert_ne(class, 0, "failed to register class").with_last_win32_err()?;
+
+		let position: Point = Default::default();
+		let dimension = Point { x: 500, y: 400 };
+
+		let mut state = Self::init_state(h_instance);
+
+		let h_window = unsafe {
+			CreateWindowExW(
+				ex_style::OverlappedWindow,
+				class_name.to_wide().as_pwstr(),
+				title.to_wide().as_pwstr(),
+				style::OverlappedWindow,
+				position.x,
+				position.y,
+				dimension.x,
+				dimension.y,
+				None,
+				None,
+				h_instance,
+				&mut state as *mut _ as _,
+			)
+		};
+		assert_ne(h_window, 0, "failed to create window").with_last_win32_err()?;
+
+		unsafe { ShowWindow(h_window, show_cmd::Show) };
+		unsafe { UpdateWindow(h_window) };
+
+		Ok(state)
+	}
+
+	fn event_loop() -> WPARAM {
+		let mut msg: MSG = Default::default();
+		let msg_ptr: *mut MSG = &mut msg as *mut _;
+		unsafe {
+			while GetMessageW(msg_ptr, 0, 0, 0).as_bool() {
+				TranslateMessage(msg_ptr);
+				DispatchMessageW(msg_ptr);
+			}
+			(*msg_ptr).wParam
+		}
+	}
+
+	extern "system" fn win_proc(
+		h_window: HWND,
+		message: message::Type,
+		wparam: WPARAM,
+		lparam: LPARAM,
+	) -> LRESULT {
+		use MessageAction::*;
+		unsafe {
+			let state: *mut Self = match message {
+				message::Destroy => {
+					display!("WM_DESTROY");
+					PostQuitMessage(0);
+					std::ptr::null_mut()
+				}
+				message::Create => {
+					display!("WM_CREATE");
+
+					let create_struct = lparam as *mut CREATESTRUCTW;
+					let state = (*create_struct).lpCreateParams as *mut Self;
+					SetWindowLongPtrW(h_window, GWLP_USERDATA, state as _);
+					state
+				}
+				_ => GetWindowLongPtrW(h_window, GWLP_USERDATA) as *mut _,
+			};
+
+			let default_win_proc = || DefWindowProcW(h_window, message, wparam, lparam);
+			if state.is_null() {
+				return default_win_proc();
+			}
+
+			match { (*state).on_message(h_window, message, wparam, lparam) } {
+				Continue => default_win_proc(),
+				FullyHandled => 0,
+				Failed => 1,
+			}
 		}
 	}
 }
