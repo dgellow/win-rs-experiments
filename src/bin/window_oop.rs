@@ -93,7 +93,9 @@ impl Window {
 		let position: Point = Default::default();
 		let dimension = Point { x: 500, y: 400 };
 
-		// 3. create object we will pass as CreateWindow creation parameter
+		// 3. create object we will pass as CreateWindow creation parameter.
+		//
+		// 📜 use Box<> type if it should be heap-allocated.
 		let mut state = Window {
 			_h_instance: h_instance,
 			h_window: 0, // will be set after call to CreateWindow
