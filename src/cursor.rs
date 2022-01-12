@@ -1,8 +1,15 @@
 #![allow(dead_code)]
 #![allow(non_upper_case_globals)]
 
+use crate::assert::{assert_ne, Result, WithLastWin32Error};
 use windows::Win32::Foundation::PWSTR;
 use windows::Win32::UI::WindowsAndMessaging::*;
+
+pub fn load_cursor(cursor: Type) -> Result<HCURSOR> {
+	let h_cursor = unsafe { LoadCursorW(0, cursor) };
+	assert_ne(h_cursor, 0, "failed to get cursor handle").with_last_win32_err()?;
+	Ok(h_cursor)
+}
 
 type Type = PWSTR;
 pub const AppStarting: Type = IDC_APPSTARTING;

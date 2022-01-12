@@ -23,9 +23,12 @@ fn app() -> Result<()> {
 mod main_window {
 	use gui::{
 		assert::{assert_eq, assert_ne, Result, WithLastWin32Error},
-		cursor, display, icon,
+		cursor::{self, load_cursor},
+		display,
+		icon::{self, load_icon},
 		wide_string::ToWide,
-		window::{class_style, ex_style, message, show_cmd, style, Point},
+		window::{class_style, ex_style, message, show_cmd, style},
+		Point,
 	};
 	use windows::Win32::{
 		Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
@@ -33,8 +36,8 @@ mod main_window {
 		System::LibraryLoader::GetModuleHandleExW,
 		UI::WindowsAndMessaging::{
 			CreateWindowExW, DefWindowProcW, DispatchMessageW, EnumChildWindows, GetClientRect,
-			GetMessageW, GetWindowLongW, LoadCursorW, LoadIconW, MoveWindow, PostQuitMessage,
-			RegisterClassExW, ShowWindow, TranslateMessage, COLOR_WINDOW, GWL_ID, MSG, WNDCLASSEXW,
+			GetMessageW, GetWindowLongW, MoveWindow, PostQuitMessage, RegisterClassExW, ShowWindow,
+			TranslateMessage, COLOR_WINDOW, GWL_ID, MSG, WNDCLASSEXW,
 		},
 	};
 
@@ -76,11 +79,8 @@ mod main_window {
 			.try_into()
 			.expect("WNDCLASSEXW size not u32");
 
-		let icon = unsafe { LoadIconW(0, icon::Application) };
-		assert_ne(icon, 0, "failed to get icon handle").with_last_win32_err()?;
-
-		let cursor = unsafe { LoadCursorW(0, cursor::Arrow) };
-		assert_ne(cursor, 0, "failed to get cursor handle").with_last_win32_err()?;
+		let icon = load_icon(icon::Application)?;
+		let cursor = load_cursor(cursor::Arrow)?;
 
 		let brush: HBRUSH = (COLOR_WINDOW + 1)
 			.try_into()

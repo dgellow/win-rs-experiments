@@ -9,7 +9,7 @@ use windows::Win32::{
 use crate::{
 	assert::{assert_ne, Result, WithLastWin32Error},
 	wide_string::ToWide,
-	window::Point,
+	Point,
 };
 
 const RICHEDIT_MODULE: &str = "msftedit.dll";
