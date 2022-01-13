@@ -23,3 +23,15 @@ macro_rules! err_display {
         }
     }
 }
+
+#[macro_export]
+macro_rules! impl_ops_for_all {
+    ($($t:ty),+) => {
+        $(impl std::ops::BitOr for $t {
+			type Output = Self;
+            fn bitor(self, rhs: Self) -> Self::Output {
+                Self(self.0 | rhs.0)
+            }
+        })*
+    }
+}

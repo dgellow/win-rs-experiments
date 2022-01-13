@@ -2,6 +2,7 @@ use crate::{
 	assert::{assert_eq, assert_ne, Result, WithLastWin32Error},
 	cursor::{self, load_cursor},
 	icon::{self, load_icon, Icon},
+	impl_ops_for_all,
 	wide_string::ToWide,
 };
 use windows::Win32::{
@@ -13,17 +14,6 @@ use windows::Win32::{
 
 pub type WindowProc =
 	unsafe extern "system" fn(window: HWND, message: message::Type, WPARAM, LPARAM) -> LRESULT;
-
-macro_rules! impl_ops_for_all {
-    ($($t:ty),+) => {
-        $(impl std::ops::BitOr for $t {
-			type Output = Self;
-            fn bitor(self, rhs: Self) -> Self::Output {
-                Self(self.0 | rhs.0)
-            }
-        })*
-    }
-}
 
 impl_ops_for_all!(class_style::Type, style::Type, ex_style::Type);
 
