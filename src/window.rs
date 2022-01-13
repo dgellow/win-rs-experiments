@@ -6,7 +6,7 @@ use crate::{
 };
 use windows::Win32::{
 	Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, WPARAM},
-	Graphics::Gdi::UpdateWindow,
+	Graphics::Gdi::{GetStockObject, UpdateWindow, DEFAULT_GUI_FONT},
 	System::LibraryLoader::GetModuleHandleExW,
 	UI::WindowsAndMessaging::*,
 };
@@ -182,14 +182,33 @@ where
 				return default_win_proc();
 			}
 
-			match (*state)
+			let action = (*state)
 				.on_message(h_window, message, wparam, lparam)
-				.unwrap()
-			{
+				.unwrap();
+
+			// set font to all controls
+			if message == message::Create {
+				let font = GetStockObject(DEFAULT_GUI_FONT);
+				EnumChildWindows(h_window, Some(Self::set_font), font);
+			}
+
+			match action {
 				Continue => default_win_proc(),
 				FullyHandled => 0,
 			}
 		}
+	}
+
+	extern "system" fn set_font(child: HWND, font: LPARAM) -> BOOL {
+		unsafe {
+			SendMessageW(
+				child,
+				message::Setfont,
+				font.try_into().expect("cannot cast LPARAM font to usize"),
+				1, // => true
+			);
+		}
+		BOOL(1)
 	}
 }
 
