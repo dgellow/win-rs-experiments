@@ -211,11 +211,12 @@ mod main_window {
 mod child_window {
 	use gui::{
 		assert::{assert_ne, Result, WithLastWin32Error},
+		null_pwstr,
 		wide_string::ToWide,
 		window::{class_style, message, show_cmd, style},
 	};
 	use windows::Win32::{
-		Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, PWSTR, WPARAM},
+		Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM},
 		System::LibraryLoader::GetModuleHandleW,
 		UI::WindowsAndMessaging::{
 			CreateWindowExW, DefWindowProcW, LoadCursorW, RegisterClassExW, ShowWindow, HMENU,
@@ -278,13 +279,12 @@ mod child_window {
 		let h_instance = assert_init()?;
 
 		let h_menu: HMENU = child_id.try_into().unwrap();
-		let null_title: PWSTR = Default::default(); // defaults to null
 
 		let child = unsafe {
 			CreateWindowExW(
 				Default::default(),
 				CLASS_NAME.to_wide().as_pwstr(),
-				null_title,
+				null_pwstr(),
 				(style::Child | style::Border).0,
 				0,
 				0,
