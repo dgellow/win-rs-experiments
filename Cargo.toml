@@ -19,5 +19,11 @@ features = [
 	"Win32_System_Threading",
 	"Win32_Graphics_Gdi",
 	"Win32_UI_WindowsAndMessaging",
+	"Win32_UI_Controls",
 	"Win32_System_LibraryLoader",
 ]
+
+[build-dependencies]
+# Embed windows manifests
+# See https://github.com/nabijaczleweli/rust-embed-resource
+embed-resource = "1.6"
