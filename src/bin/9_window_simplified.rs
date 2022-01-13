@@ -60,20 +60,20 @@ impl WindowBase for MainWindow {
 		message: message::Type,
 		_wparam: WPARAM,
 		_lparam: LPARAM,
-	) -> gui::window::MessageAction {
+	) -> Result<gui::window::MessageAction> {
 		use gui::window::MessageAction::*;
 
 		match message {
 			message::Paint => {
 				display!("WM_PAINT");
 				unsafe { ValidateRect(h_window, std::ptr::null()) };
-				Continue
+				Ok(Continue)
 			}
 			message::MButtonDown => {
 				display!("WM_MBUTTONDOWN");
-				Continue
+				Ok(Continue)
 			}
-			_ => Continue,
+			_ => Ok(Continue),
 		}
 	}
 }

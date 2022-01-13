@@ -30,7 +30,6 @@ impl_ops_for_all!(class_style::Type, style::Type, ex_style::Type);
 pub enum MessageAction {
 	Continue,
 	FullyHandled,
-	Failed,
 }
 
 pub struct Options {
@@ -75,7 +74,7 @@ where
 		message: message::Type,
 		wparam: WPARAM,
 		lparam: LPARAM,
-	) -> MessageAction;
+	) -> Result<MessageAction>;
 
 	fn new<Opts>(class_name: &str, title: &str, options: Opts) -> Result<Self>
 	where
@@ -183,10 +182,12 @@ where
 				return default_win_proc();
 			}
 
-			match { (*state).on_message(h_window, message, wparam, lparam) } {
+			match (*state)
+				.on_message(h_window, message, wparam, lparam)
+				.unwrap()
+			{
 				Continue => default_win_proc(),
 				FullyHandled => 0,
-				Failed => 1,
 			}
 		}
 	}
