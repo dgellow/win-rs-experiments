@@ -23,12 +23,12 @@ fn app() -> Result<()> {
 	let main_window = MainWindow::new(
 		"MainWindow",
 		"Simplified Window — Win32 💖 Rust",
-		Some(window::Options {
+		window::Options {
 			icon: icon::WinLogo,
 			cursor: cursor::Person,
 			bg_brush: COLOR_BACKGROUND,
 			..Default::default()
-		}),
+		},
 	)?;
 	display!("main_window: {:?}", main_window);
 

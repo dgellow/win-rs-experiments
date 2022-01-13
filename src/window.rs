@@ -1,7 +1,6 @@
 use crate::{
 	assert::{assert_eq, assert_ne, Result, WithLastWin32Error},
 	cursor::{self, load_cursor},
-	display,
 	icon::{self, load_icon, Icon},
 	wide_string::ToWide,
 };
@@ -78,11 +77,12 @@ where
 		lparam: LPARAM,
 	) -> MessageAction;
 
-	fn new(class_name: &str, title: &str, options: Option<Options>) -> Result<Self>
+	fn new<Opts>(class_name: &str, title: &str, options: Opts) -> Result<Self>
 	where
 		Self: Sized,
+		Opts: Into<Option<Options>>,
 	{
-		let opts = options.unwrap_or_default();
+		let opts = options.into().unwrap_or_default();
 
 		let mut h_instance: HINSTANCE = Default::default();
 		assert_eq(
@@ -166,13 +166,10 @@ where
 		unsafe {
 			let state: *mut Self = match message {
 				message::Destroy => {
-					display!("WM_DESTROY");
 					PostQuitMessage(0);
 					std::ptr::null_mut()
 				}
 				message::Create => {
-					display!("WM_CREATE");
-
 					let create_struct = lparam as *mut CREATESTRUCTW;
 					let state = (*create_struct).lpCreateParams as *mut Self;
 					SetWindowLongPtrW(h_window, GWLP_USERDATA, state as _);
