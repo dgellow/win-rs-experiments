@@ -154,10 +154,10 @@ where
 
 		let h_window = unsafe {
 			CreateWindowExW(
-				ex_style::OverlappedWindow,
+				ex_style::OverlappedWindow.0,
 				class_name.to_wide().as_pwstr(),
 				title.to_wide().as_pwstr(),
-				style::OverlappedWindow,
+				style::OverlappedWindow.0,
 				position.x,
 				position.y,
 				dimension.x,

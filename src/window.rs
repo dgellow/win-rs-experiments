@@ -4,17 +4,29 @@ use crate::{
 	display,
 	icon::{self, load_icon, Icon},
 	wide_string::ToWide,
-	Point,
 };
 use windows::Win32::{
 	Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, WPARAM},
-	Graphics::Gdi::{UpdateWindow, HBRUSH},
+	Graphics::Gdi::UpdateWindow,
 	System::LibraryLoader::GetModuleHandleExW,
 	UI::WindowsAndMessaging::*,
 };
 
 pub type WindowProc =
 	unsafe extern "system" fn(window: HWND, message: message::Type, WPARAM, LPARAM) -> LRESULT;
+
+macro_rules! impl_ops_for_all {
+    ($($t:ty),+) => {
+        $(impl std::ops::BitOr for $t {
+			type Output = Self;
+            fn bitor(self, rhs: Self) -> Self::Output {
+                Self(self.0 | rhs.0)
+            }
+        })*
+    }
+}
+
+impl_ops_for_all!(class_style::Type, style::Type, ex_style::Type);
 
 pub enum MessageAction {
 	Continue,
@@ -23,17 +35,31 @@ pub enum MessageAction {
 }
 
 pub struct Options {
-	pub icon: Icon,
-	pub cursor: cursor::Type,
 	pub bg_brush: u32,
+	pub class_style: class_style::Type,
+	pub cursor: cursor::Type,
+	pub height: i32,
+	pub icon: Icon,
+	pub width: i32,
+	pub window_ext_style: ex_style::Type,
+	pub window_style: style::Type,
+	pub x: i32,
+	pub y: i32,
 }
 
 impl Default for Options {
 	fn default() -> Self {
 		Self {
-			icon: icon::Application,
-			cursor: cursor::Arrow,
+			x: CW_USEDEFAULT,
+			y: CW_USEDEFAULT,
+			width: 500,
+			height: 400,
+			class_style: class_style::HRedraw | class_style::VRedraw,
+			window_ext_style: ex_style::OverlappedWindow,
+			window_style: style::OverlappedWindow,
 			bg_brush: COLOR_WINDOW + 1,
+			cursor: cursor::Arrow,
+			icon: icon::Application,
 		}
 	}
 }
@@ -71,23 +97,19 @@ where
 			.expect("WNDCLASSEXW size not u32");
 
 		let icon = load_icon(opts.icon)?;
-		let cursor = load_cursor(opts.cursor)?;
-
-		let brush: HBRUSH = opts
-			.bg_brush
-			.try_into()
-			.expect("cannot convert color to HBRUSH");
-
 		let wnd_class = WNDCLASSEXW {
 			cbSize: size,
-			style: class_style::HRedraw.0 | class_style::VRedraw.0,
+			style: opts.class_style.0,
 			lpfnWndProc: Some(Self::win_proc),
 			cbClsExtra: 0,
 			cbWndExtra: 0,
 			hInstance: h_instance,
 			hIcon: icon,
-			hCursor: cursor,
-			hbrBackground: brush,
+			hCursor: load_cursor(opts.cursor)?,
+			hbrBackground: opts
+				.bg_brush
+				.try_into()
+				.expect("cannot convert color to HBRUSH"),
 			lpszMenuName: Default::default(), // defaults to null
 			lpszClassName: class_name.to_wide().as_pwstr(),
 			hIconSm: icon,
@@ -96,21 +118,18 @@ where
 		let class = unsafe { RegisterClassExW(&wnd_class) };
 		assert_ne(class, 0, "failed to register class").with_last_win32_err()?;
 
-		let position: Point = Default::default();
-		let dimension = Point { x: 500, y: 400 };
-
 		let mut state = Self::init_state(h_instance);
 
 		let h_window = unsafe {
 			CreateWindowExW(
-				ex_style::OverlappedWindow,
+				opts.window_ext_style.0,
 				class_name.to_wide().as_pwstr(),
 				title.to_wide().as_pwstr(),
-				style::OverlappedWindow,
-				position.x,
-				position.y,
-				dimension.x,
-				dimension.y,
+				opts.window_style.0,
+				opts.x,
+				opts.y,
+				opts.width,
+				opts.height,
 				None,
 				None,
 				h_instance,
@@ -492,69 +511,69 @@ pub mod show_cmd {
 #[allow(non_upper_case_globals)]
 pub mod ex_style {
 	use windows::Win32::UI::WindowsAndMessaging::*;
-	pub type Type = WINDOW_EX_STYLE;
+	pub struct Type(pub WINDOW_EX_STYLE);
 
-	pub const DlgModalFrame: Type = WS_EX_DLGMODALFRAME;
-	pub const NoParentNotify: Type = WS_EX_NOPARENTNOTIFY;
-	pub const TopMost: Type = WS_EX_TOPMOST;
-	pub const AcceptFiles: Type = WS_EX_ACCEPTFILES;
-	pub const Transparent: Type = WS_EX_TRANSPARENT;
-	pub const MdiChild: Type = WS_EX_MDICHILD;
-	pub const ToolWindow: Type = WS_EX_TOOLWINDOW;
-	pub const WindowEdge: Type = WS_EX_WINDOWEDGE;
-	pub const ClientEdge: Type = WS_EX_CLIENTEDGE;
-	pub const ContextHelp: Type = WS_EX_CONTEXTHELP;
-	pub const Right: Type = WS_EX_RIGHT;
-	pub const Left: Type = WS_EX_LEFT;
-	pub const RtlReading: Type = WS_EX_RTLREADING;
-	pub const LtrReading: Type = WS_EX_LTRREADING;
-	pub const LeftScrollbar: Type = WS_EX_LEFTSCROLLBAR;
-	pub const RightScrollbar: Type = WS_EX_RIGHTSCROLLBAR;
-	pub const ControlParent: Type = WS_EX_CONTROLPARENT;
-	pub const StaticEdge: Type = WS_EX_STATICEDGE;
-	pub const AppWindow: Type = WS_EX_APPWINDOW;
-	pub const OverlappedWindow: Type = WS_EX_OVERLAPPEDWINDOW;
-	pub const PaletteWindow: Type = WS_EX_PALETTEWINDOW;
-	pub const Layered: Type = WS_EX_LAYERED;
-	pub const NoInheritLayout: Type = WS_EX_NOINHERITLAYOUT;
-	pub const NoRedirectionBitmap: Type = WS_EX_NOREDIRECTIONBITMAP;
-	pub const LayoutRtl: Type = WS_EX_LAYOUTRTL;
-	pub const Composited: Type = WS_EX_COMPOSITED;
-	pub const NoActivate: Type = WS_EX_NOACTIVATE;
+	pub const DlgModalFrame: Type = Type(WS_EX_DLGMODALFRAME);
+	pub const NoParentNotify: Type = Type(WS_EX_NOPARENTNOTIFY);
+	pub const TopMost: Type = Type(WS_EX_TOPMOST);
+	pub const AcceptFiles: Type = Type(WS_EX_ACCEPTFILES);
+	pub const Transparent: Type = Type(WS_EX_TRANSPARENT);
+	pub const MdiChild: Type = Type(WS_EX_MDICHILD);
+	pub const ToolWindow: Type = Type(WS_EX_TOOLWINDOW);
+	pub const WindowEdge: Type = Type(WS_EX_WINDOWEDGE);
+	pub const ClientEdge: Type = Type(WS_EX_CLIENTEDGE);
+	pub const ContextHelp: Type = Type(WS_EX_CONTEXTHELP);
+	pub const Right: Type = Type(WS_EX_RIGHT);
+	pub const Left: Type = Type(WS_EX_LEFT);
+	pub const RtlReading: Type = Type(WS_EX_RTLREADING);
+	pub const LtrReading: Type = Type(WS_EX_LTRREADING);
+	pub const LeftScrollbar: Type = Type(WS_EX_LEFTSCROLLBAR);
+	pub const RightScrollbar: Type = Type(WS_EX_RIGHTSCROLLBAR);
+	pub const ControlParent: Type = Type(WS_EX_CONTROLPARENT);
+	pub const StaticEdge: Type = Type(WS_EX_STATICEDGE);
+	pub const AppWindow: Type = Type(WS_EX_APPWINDOW);
+	pub const OverlappedWindow: Type = Type(WS_EX_OVERLAPPEDWINDOW);
+	pub const PaletteWindow: Type = Type(WS_EX_PALETTEWINDOW);
+	pub const Layered: Type = Type(WS_EX_LAYERED);
+	pub const NoInheritLayout: Type = Type(WS_EX_NOINHERITLAYOUT);
+	pub const NoRedirectionBitmap: Type = Type(WS_EX_NOREDIRECTIONBITMAP);
+	pub const LayoutRtl: Type = Type(WS_EX_LAYOUTRTL);
+	pub const Composited: Type = Type(WS_EX_COMPOSITED);
+	pub const NoActivate: Type = Type(WS_EX_NOACTIVATE);
 }
 
 #[allow(dead_code)]
 #[allow(non_upper_case_globals)]
 pub mod style {
 	use windows::Win32::UI::WindowsAndMessaging::*;
-	pub type Type = WINDOW_STYLE;
+	pub struct Type(pub WINDOW_STYLE);
 
-	pub const Overlapped: Type = WS_OVERLAPPED;
-	pub const Popup: Type = WS_POPUP;
-	pub const Child: Type = WS_CHILD;
-	pub const Minimize: Type = WS_MINIMIZE;
-	pub const Visible: Type = WS_VISIBLE;
-	pub const Disabled: Type = WS_DISABLED;
-	pub const ClipSiblings: Type = WS_CLIPSIBLINGS;
-	pub const ClipChildren: Type = WS_CLIPCHILDREN;
-	pub const Maximize: Type = WS_MAXIMIZE;
-	pub const Caption: Type = WS_CAPTION;
-	pub const Border: Type = WS_BORDER;
-	pub const DlgFrame: Type = WS_DLGFRAME;
-	pub const VScroll: Type = WS_VSCROLL;
-	pub const HScroll: Type = WS_HSCROLL;
-	pub const SysMenu: Type = WS_SYSMENU;
-	pub const ThickFrame: Type = WS_THICKFRAME;
-	pub const Group: Type = WS_GROUP;
-	pub const Tabstop: Type = WS_TABSTOP;
-	pub const MinimizeBox: Type = WS_MINIMIZEBOX;
-	pub const MaximizeBox: Type = WS_MAXIMIZEBOX;
-	pub const Tiled: Type = WS_TILED;
-	pub const Iconic: Type = WS_ICONIC;
-	pub const SizeBox: Type = WS_SIZEBOX;
-	pub const TiledWindow: Type = WS_TILEDWINDOW;
-	pub const OverlappedWindow: Type = WS_OVERLAPPEDWINDOW;
-	pub const PopupWindow: Type = WS_POPUPWINDOW;
-	pub const ChildWindow: Type = WS_CHILDWINDOW;
-	pub const ActiveCaption: Type = WS_ACTIVECAPTION;
+	pub const Overlapped: Type = Type(WS_OVERLAPPED);
+	pub const Popup: Type = Type(WS_POPUP);
+	pub const Child: Type = Type(WS_CHILD);
+	pub const Minimize: Type = Type(WS_MINIMIZE);
+	pub const Visible: Type = Type(WS_VISIBLE);
+	pub const Disabled: Type = Type(WS_DISABLED);
+	pub const ClipSiblings: Type = Type(WS_CLIPSIBLINGS);
+	pub const ClipChildren: Type = Type(WS_CLIPCHILDREN);
+	pub const Maximize: Type = Type(WS_MAXIMIZE);
+	pub const Caption: Type = Type(WS_CAPTION);
+	pub const Border: Type = Type(WS_BORDER);
+	pub const DlgFrame: Type = Type(WS_DLGFRAME);
+	pub const VScroll: Type = Type(WS_VSCROLL);
+	pub const HScroll: Type = Type(WS_HSCROLL);
+	pub const SysMenu: Type = Type(WS_SYSMENU);
+	pub const ThickFrame: Type = Type(WS_THICKFRAME);
+	pub const Group: Type = Type(WS_GROUP);
+	pub const Tabstop: Type = Type(WS_TABSTOP);
+	pub const MinimizeBox: Type = Type(WS_MINIMIZEBOX);
+	pub const MaximizeBox: Type = Type(WS_MAXIMIZEBOX);
+	pub const Tiled: Type = Type(WS_TILED);
+	pub const Iconic: Type = Type(WS_ICONIC);
+	pub const SizeBox: Type = Type(WS_SIZEBOX);
+	pub const TiledWindow: Type = Type(WS_TILEDWINDOW);
+	pub const OverlappedWindow: Type = Type(WS_OVERLAPPEDWINDOW);
+	pub const PopupWindow: Type = Type(WS_POPUPWINDOW);
+	pub const ChildWindow: Type = Type(WS_CHILDWINDOW);
+	pub const ActiveCaption: Type = Type(WS_ACTIVECAPTION);
 }
