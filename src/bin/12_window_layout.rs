@@ -65,70 +65,32 @@ impl WindowBase for MainWindow {
 			message::Create => {
 				display!("WM_CREATE");
 
-				// let button = Button::new("My button 1").leftMargin(30).done();
-
-				let root = VStack {
-					spacing: 10,
-					padding: Padding {
-						left: 10,
-						..Default::default()
-					},
-					items: vec![
-						Button::new("My Button 1").leftMargin(30).done(),
-						Button {
-							title: "My Button 1".to_owned(),
-							h: 40,
-							w: 100,
-							margin: Margin {
-								left: 30,
-								..Default::default()
-							},
-						}
-						.done(),
-						HStack {
-							spacing: 10,
-							items: vec![
-								InputText {
-									text: "hello".to_owned(),
-									h: 20,
-									w: 100,
-									margin: Default::default(),
-								}
-								.done(),
-								InputText {
-									text: "world".to_owned(),
-									h: 20,
-									w: 100,
-									margin: Default::default(),
-								}
-								.done(),
+				let root = VStack::new(
+					10,
+					vec![
+						HStack::new(
+							10,
+							vec![
+								InputText::new("hello").height(20).width(100).done(),
+								InputText::new("world").height(20).width(100).done(),
 							],
-							..Default::default()
-						}
+						)
 						.done(),
-						HStack {
-							spacing: 10,
-							padding: Default::default(),
-							items: vec![
-								InputText {
-									text: "hello".to_owned(),
-									h: 20,
-									w: 100,
-									margin: Default::default(),
-								}
-								.done(),
-								InputText {
-									text: "world".to_owned(),
-									h: 20,
-									w: 100,
-									margin: Default::default(),
-								}
-								.done(),
+						HStack::new(
+							10,
+							vec![
+								InputText::new("hello").height(20).width(100).done(),
+								InputText::new("world").height(20).width(100).done(),
 							],
-						}
+						)
 						.done(),
+						Button::new("My Button 1")
+							.height(40)
+							.width(100)
+							.left_margin(30)
+							.done(),
 					],
-				}
+				)
 				.done();
 
 				let mut screen = Screen::new(self.h_instance, h_window);
@@ -288,6 +250,14 @@ struct VStack {
 }
 
 impl VStack {
+	fn new(spacing: i32, items: Vec<Control>) -> Self {
+		Self {
+			spacing,
+			items,
+			..Default::default()
+		}
+	}
+
 	fn done(self) -> Control {
 		Control::VStack(self)
 	}
@@ -312,6 +282,14 @@ struct HStack {
 }
 
 impl HStack {
+	fn new(spacing: i32, items: Vec<Control>) -> Self {
+		Self {
+			spacing,
+			items,
+			..Default::default()
+		}
+	}
+
 	fn done(self) -> Control {
 		Control::HStack(self)
 	}
@@ -431,31 +409,31 @@ where
 	fn get_margin(&self) -> Margin;
 	fn set_margin(&mut self, m: Margin);
 
-	fn leftMargin(mut self, m: i32) -> Self {
+	fn left_margin(mut self, m: i32) -> Self {
 		let mm = self.get_margin();
 		self.set_margin(Margin { left: m, ..mm });
 		self
 	}
 
-	fn rightMargin(mut self, m: i32) -> Self {
+	fn right_margin(mut self, m: i32) -> Self {
 		let mm = self.get_margin();
 		self.set_margin(Margin { right: m, ..mm });
 		self
 	}
 
-	fn topMargin(mut self, m: i32) -> Self {
+	fn top_margin(mut self, m: i32) -> Self {
 		let mm = self.get_margin();
 		self.set_margin(Margin { top: m, ..mm });
 		self
 	}
 
-	fn bottomMargin(mut self, m: i32) -> Self {
+	fn bottom_margin(mut self, m: i32) -> Self {
 		let mm = self.get_margin();
 		self.set_margin(Margin { bottom: m, ..mm });
 		self
 	}
 
-	fn verticalMargin(mut self, m: i32) -> Self {
+	fn vertical_margin(mut self, m: i32) -> Self {
 		let mm = self.get_margin();
 		self.set_margin(Margin {
 			top: m,
@@ -465,7 +443,7 @@ where
 		self
 	}
 
-	fn horizontalMargin(mut self, m: i32) -> Self {
+	fn horizontal_margin(mut self, m: i32) -> Self {
 		let mm = self.get_margin();
 		self.set_margin(Margin {
 			left: m,
@@ -491,31 +469,31 @@ where
 	fn get_padding(&self) -> Padding;
 	fn set_padding(&mut self, m: Padding);
 
-	fn leftPadding(mut self, m: i32) -> Self {
+	fn left_padding(mut self, m: i32) -> Self {
 		let mm = self.get_padding();
 		self.set_padding(Padding { left: m, ..mm });
 		self
 	}
 
-	fn rightPadding(mut self, m: i32) -> Self {
+	fn right_padding(mut self, m: i32) -> Self {
 		let mm = self.get_padding();
 		self.set_padding(Padding { right: m, ..mm });
 		self
 	}
 
-	fn topPadding(mut self, m: i32) -> Self {
+	fn top_padding(mut self, m: i32) -> Self {
 		let mm = self.get_padding();
 		self.set_padding(Padding { top: m, ..mm });
 		self
 	}
 
-	fn bottomPadding(mut self, m: i32) -> Self {
+	fn bottom_padding(mut self, m: i32) -> Self {
 		let mm = self.get_padding();
 		self.set_padding(Padding { bottom: m, ..mm });
 		self
 	}
 
-	fn verticalPadding(mut self, m: i32) -> Self {
+	fn vertical_padding(mut self, m: i32) -> Self {
 		let mm = self.get_padding();
 		self.set_padding(Padding {
 			top: m,
@@ -525,7 +503,7 @@ where
 		self
 	}
 
-	fn horizontalPadding(mut self, m: i32) -> Self {
+	fn horizontal_padding(mut self, m: i32) -> Self {
 		let mm = self.get_padding();
 		self.set_padding(Padding {
 			left: m,
