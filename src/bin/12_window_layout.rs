@@ -168,14 +168,6 @@ impl Screen {
 
 	fn render(&mut self, root: Control) -> Result<Rect> {
 		match root {
-			Control::Grid { items } => {
-				// self.offset.left += offset.left;
-				// self.offset.top += offset.top;
-				// for item in items {
-				// 	self.render(item)?;
-				// }
-				todo!()
-			}
 			Control::HStack {
 				items,
 				spacing,
@@ -296,14 +288,9 @@ enum Control<'a> {
 		spacing: i32,
 	},
 	HStack {
-		// offset: Offset,
 		padding: Padding,
 		items: Vec<Control<'a>>,
 		spacing: i32,
-	},
-	Grid {
-		// offset: Offset,
-		items: Vec<Control<'a>>,
 	},
 	InputText {
 		text: &'a str,
@@ -334,14 +321,3 @@ struct Padding {
 	top: i32,
 	bottom: i32,
 }
-
-// enum Container {
-// 	Grid(Grid),
-// 	VStack(VStack),
-// 	HStack(HStack),
-// }
-
-// enum Control {
-// 	InputText(InputText),
-// 	Button(Button),
-// }
