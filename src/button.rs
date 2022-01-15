@@ -16,8 +16,10 @@ pub fn create(
 	owner: HWND,
 	h_instance: HINSTANCE,
 	title: &str,
-	position: Point,
-	dimension: Point,
+	x: i32,
+	y: i32,
+	width: i32,
+	height: i32,
 ) -> Result<()> {
 	let btn_styles: WINDOW_STYLE = (style::PushButton | style::Text)
 		.0
@@ -33,10 +35,10 @@ pub fn create(
 			BUTTON_CLASS.to_wide().as_pwstr(),
 			title.to_wide().as_pwstr(),
 			btn_styles | styles.0,
-			position.x,
-			position.y,
-			dimension.x,
-			dimension.y,
+			x,
+			y,
+			width,
+			height,
 			owner,
 			None,
 			h_instance,

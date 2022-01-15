@@ -6,7 +6,7 @@ use windows::Win32::{
 use crate::{
 	assert::{assert_ne, Result, WithLastWin32Error},
 	wide_string::ToWide,
-	window, Point,
+	window,
 };
 
 const EDIT_CLASS: &str = "EDIT";
@@ -14,8 +14,11 @@ const EDIT_CLASS: &str = "EDIT";
 pub fn create_text_input(
 	owner: HWND,
 	h_instance: HINSTANCE,
-	position: Point,
-	dimension: Point,
+	text: &str,
+	x: i32,
+	y: i32,
+	width: i32,
+	height: i32,
 ) -> Result<()> {
 	let styles = TryInto::<WINDOW_STYLE>::try_into(style::ES_LEFT)
 		.expect("cannot cast to WINDOW_STYLE")
@@ -28,12 +31,12 @@ pub fn create_text_input(
 		CreateWindowExW(
 			ex_styles.0,
 			EDIT_CLASS.to_wide().as_pwstr(),
-			"Type text".to_wide().as_pwstr(),
+			text.to_wide().as_pwstr(),
 			styles,
-			position.x,
-			position.y,
-			dimension.x,
-			dimension.y,
+			x,
+			y,
+			width,
+			height,
 			owner,
 			None,
 			h_instance,
