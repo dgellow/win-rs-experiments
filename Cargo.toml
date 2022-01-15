@@ -8,6 +8,7 @@ authors = ["Samuel El-Borai <sam@elborai.me>"]
 name = "gui"
 
 [dependencies]
+# stretch2 = { git = "https://github.com/dioxuslabs/stretch" }
 
 [dependencies.windows]
 version = "0.29.0"

@@ -2,12 +2,10 @@ use gui::{
 	assert::Result,
 	button, display, err_display, input,
 	window::{message, Options, WindowBase},
-	Point,
 };
 use windows::Win32::{
 	Foundation::{HINSTANCE, HWND, LPARAM, WPARAM},
 	Graphics::Gdi::ValidateRect,
-	UI::Controls::SetWindowTheme,
 };
 
 fn main() -> std::result::Result<(), ()> {
@@ -64,25 +62,9 @@ impl WindowBase for MainWindow {
 		match message {
 			message::Create => {
 				display!("WM_CREATE");
-				input::create_text_input(
-					h_window,
-					self.h_instance,
-					Point { x: 0, y: 0 },
-					Point { x: 200, y: 30 },
-				)?;
-				input::create_text_input(
-					h_window,
-					self.h_instance,
-					Point { x: 0, y: 40 },
-					Point { x: 200, y: 30 },
-				)?;
-				button::create(
-					h_window,
-					self.h_instance,
-					"Click me!",
-					Point { x: 8, y: 80 },
-					Point { x: 80, y: 60 },
-				)?;
+				input::create_text_input(h_window, self.h_instance, "Type text", 0, 0, 200, 30)?;
+				input::create_text_input(h_window, self.h_instance, "Type text", 0, 40, 200, 30)?;
+				button::create(h_window, self.h_instance, "Click me!", 8, 80, 80, 60)?;
 				Ok(Continue)
 			}
 			message::Paint => {

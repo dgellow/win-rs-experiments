@@ -5,7 +5,6 @@ use gui::{
 	button, display, err_display,
 	input::create_text_input,
 	window::{message, Options, WindowBase},
-	Point,
 };
 use windows::Win32::{
 	Foundation::{HINSTANCE, HWND, LPARAM, WPARAM},
