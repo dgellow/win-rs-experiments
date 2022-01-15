@@ -7,7 +7,7 @@ use crate::{
 	assert::{assert_ne, Result, WithLastWin32Error},
 	impl_ops_for_all,
 	wide_string::ToWide,
-	window, Point,
+	window,
 };
 
 const BUTTON_CLASS: &str = "BUTTON";
