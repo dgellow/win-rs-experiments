@@ -1,7 +1,7 @@
 use gui::{
 	assert::Result,
 	cursor, display, err_display, icon,
-	window::{self, message, WindowBase},
+	window::{self, message, WindowBase, WindowHandler},
 };
 use windows::Win32::{
 	Foundation::{HINSTANCE, HWND, LPARAM, WPARAM},
@@ -44,7 +44,7 @@ struct MainWindow {
 	h_instance: HINSTANCE,
 }
 
-// 2. implement WindowBase trait
+// 2. implement traits for WindowBase and WindowHandler
 impl WindowBase for MainWindow {
 	fn init_state(h_instance: HINSTANCE) -> Self {
 		Self { h_instance }
@@ -53,7 +53,9 @@ impl WindowBase for MainWindow {
 	fn h_instance(&self) -> HINSTANCE {
 		self.h_instance
 	}
+}
 
+impl WindowHandler for MainWindow {
 	fn on_message(
 		&self,
 		h_window: HWND,

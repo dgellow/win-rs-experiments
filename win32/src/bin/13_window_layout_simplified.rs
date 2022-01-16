@@ -1,6 +1,7 @@
+use derive::WindowBase;
 use gui::{
 	assert::Result,
-	button, display, err_display, input,
+	display, err_display,
 	window::{message, Options, WindowBase, WindowHandler},
 };
 use windows::Win32::{
@@ -21,7 +22,7 @@ fn main() -> std::result::Result<(), ()> {
 fn app() -> Result<()> {
 	let main_window = MainWindow::new(
 		"MainWindow",
-		"Input Window — Win32 💖 Rust",
+		"Simplified Layout Window — Win32 💖 Rust",
 		Options {
 			..Default::default()
 		},
@@ -34,21 +35,9 @@ fn app() -> Result<()> {
 	Ok(())
 }
 
-// 1. create our window type
-#[derive(Debug)]
+#[derive(Debug, WindowBase)]
 struct MainWindow {
 	h_instance: HINSTANCE,
-}
-
-// 2. implement traits WindowBase and WindowHandler
-impl WindowBase for MainWindow {
-	fn init_state(h_instance: HINSTANCE) -> Self {
-		Self { h_instance }
-	}
-
-	fn h_instance(&self) -> HINSTANCE {
-		self.h_instance
-	}
 }
 
 impl WindowHandler for MainWindow {
@@ -64,9 +53,7 @@ impl WindowHandler for MainWindow {
 		match message {
 			message::Create => {
 				display!("WM_CREATE");
-				input::create_text_input(h_window, self.h_instance, "Type text", 0, 0, 200, 30)?;
-				input::create_text_input(h_window, self.h_instance, "Type text", 0, 40, 200, 30)?;
-				button::create(h_window, self.h_instance, "Click me!", 8, 80, 80, 60)?;
+				on_create(self.h_instance, h_window)?;
 				Ok(Continue)
 			}
 			message::Paint => {
@@ -81,4 +68,40 @@ impl WindowHandler for MainWindow {
 			_ => Ok(Continue),
 		}
 	}
+}
+
+fn on_create(h_instance: HINSTANCE, h_window: HWND) -> Result<()> {
+	use gui::layout::*;
+
+	let root = VStack::new(
+		10,
+		vec![
+			HStack::new(
+				10,
+				vec![
+					InputText::new("hello").height(20).width(100).done(),
+					InputText::new("world").height(20).width(100).done(),
+				],
+			)
+			.done(),
+			HStack::new(
+				10,
+				vec![
+					InputText::new("hello").height(20).width(100).done(),
+					InputText::new("world").height(20).width(100).done(),
+				],
+			)
+			.done(),
+			Button::new("My Button 1")
+				.height(40)
+				.width(100)
+				.left_margin(30)
+				.done(),
+		],
+	)
+	.left_padding(10)
+	.done();
+
+	let mut screen = Screen::new(h_instance, h_window);
+	screen.render(root)
 }

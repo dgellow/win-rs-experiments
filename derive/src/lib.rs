@@ -61,6 +61,25 @@ pub fn derive_dimension_builder(input: TokenStream) -> TokenStream {
 	TokenStream::from(expanded)
 }
 
+#[proc_macro_derive(WindowBase)]
+pub fn derive_window_base(input: TokenStream) -> TokenStream {
+	let input = parse_macro_input!(input as DeriveInput);
+	let name = input.ident;
+
+	let expanded = quote! {
+		impl WindowBase for #name {
+			fn init_state(h_instance: HINSTANCE) -> Self {
+				Self { h_instance }
+			}
+			fn h_instance(&self) -> HINSTANCE {
+				self.h_instance
+			}
+		}
+	};
+
+	TokenStream::from(expanded)
+}
+
 // struct EmbedArgs {
 // 	pub vars: HashSet<Ident>,
 // }

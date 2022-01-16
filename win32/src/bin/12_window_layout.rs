@@ -5,7 +5,7 @@ use gui::{
 	assert::Result,
 	button, display, err_display,
 	input::create_text_input,
-	window::{message, Options, WindowBase},
+	window::{message, Options, WindowBase, WindowHandler},
 };
 use windows::Win32::{
 	Foundation::{HINSTANCE, HWND, LPARAM, WPARAM},
@@ -25,7 +25,7 @@ fn main() -> std::result::Result<(), ()> {
 fn app() -> Result<()> {
 	let main_window = MainWindow::new(
 		"MainWindow",
-		"Input Window — Win32 💖 Rust",
+		"Layout Window — Win32 💖 Rust",
 		Options {
 			..Default::default()
 		},
@@ -51,7 +51,9 @@ impl WindowBase for MainWindow {
 	fn h_instance(&self) -> HINSTANCE {
 		self.h_instance
 	}
+}
 
+impl WindowHandler for MainWindow {
 	fn on_message(
 		&self,
 		h_window: HWND,

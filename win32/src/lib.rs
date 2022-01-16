@@ -7,6 +7,7 @@ pub mod color;
 pub mod cursor;
 pub mod icon;
 pub mod input;
+pub mod layout;
 pub mod macros;
 pub mod menu;
 pub mod message_box;

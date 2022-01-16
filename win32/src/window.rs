@@ -52,20 +52,15 @@ impl Default for Options {
 	}
 }
 
-pub trait WindowBase
+pub trait WindowBase {
+	fn init_state(h_instance: HINSTANCE) -> Self;
+	fn h_instance(&self) -> HINSTANCE;
+}
+
+pub trait WindowHandler: WindowBase
 where
 	Self: Sized,
 {
-	fn init_state(h_instance: HINSTANCE) -> Self;
-	fn h_instance(&self) -> HINSTANCE;
-	fn on_message(
-		&self,
-		h_window: HWND,
-		message: message::Type,
-		wparam: WPARAM,
-		lparam: LPARAM,
-	) -> Result<MessageAction>;
-
 	fn new<Opts>(class_name: &str, title: &str, options: Opts) -> Result<Self>
 	where
 		Self: Sized,
@@ -144,6 +139,14 @@ where
 			(*msg_ptr).wParam
 		}
 	}
+
+	fn on_message(
+		&self,
+		h_window: HWND,
+		message: message::Type,
+		wparam: WPARAM,
+		lparam: LPARAM,
+	) -> Result<MessageAction>;
 
 	extern "system" fn win_proc(
 		h_window: HWND,
