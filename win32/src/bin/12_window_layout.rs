@@ -1,5 +1,6 @@
 use std::cmp;
 
+use derive::{DimensionBuilder, MarginBuilder, PaddingBuilder};
 use gui::{
 	assert::Result,
 	button, display, err_display,
@@ -214,35 +215,41 @@ impl Screen {
 					button.title.as_str(),
 					self.offset.left + button.margin.left,
 					self.offset.top + button.margin.top,
-					button.w,
-					button.h,
+					button.dimension.width,
+					button.dimension.height,
 				)?;
 				Ok(Rect {
-					w: button.w + button.margin.left + button.margin.right,
-					h: button.h + button.margin.top + button.margin.bottom,
+					w: button.dimension.width + button.margin.left + button.margin.right,
+					h: button.dimension.height + button.margin.top + button.margin.bottom,
 				})
 			}
-			Control::InputText(InputText { text, w, h, margin }) => {
+			Control::InputText(input) => {
 				create_text_input(
 					self.h_window,
 					self.h_instance,
-					text.as_str(),
-					self.offset.left + margin.left,
-					self.offset.top + margin.top,
-					w,
-					h,
+					input.text.as_str(),
+					self.offset.left + input.margin.left,
+					self.offset.top + input.margin.top,
+					input.dimension.width,
+					input.dimension.height,
 				)?;
 				Ok(Rect {
-					w: w + margin.left + margin.right,
-					h: h + margin.top + margin.bottom,
+					w: input.dimension.width + input.margin.left + input.margin.right,
+					h: input.dimension.height + input.margin.top + input.margin.bottom,
 				})
 			}
 		}
 	}
 }
 
-#[derive(Default)]
+enum Control {
+	VStack(VStack),
+	HStack(HStack),
+	InputText(InputText),
+	Button(Button),
+}
 
+#[derive(Default, PaddingBuilder)]
 struct VStack {
 	padding: Padding,
 	items: Vec<Control>,
@@ -263,18 +270,7 @@ impl VStack {
 	}
 }
 
-impl PaddingBuilder for VStack {
-	fn get_padding(&self) -> Padding {
-		self.padding
-	}
-
-	fn set_padding(&mut self, m: Padding) {
-		self.padding = m
-	}
-}
-
-#[derive(Default)]
-
+#[derive(Default, PaddingBuilder)]
 struct HStack {
 	padding: Padding,
 	items: Vec<Control>,
@@ -295,21 +291,10 @@ impl HStack {
 	}
 }
 
-impl PaddingBuilder for HStack {
-	fn get_padding(&self) -> Padding {
-		self.padding
-	}
-
-	fn set_padding(&mut self, m: Padding) {
-		self.padding = m
-	}
-}
-
-#[derive(Default)]
+#[derive(Default, MarginBuilder, DimensionBuilder)]
 struct InputText {
 	text: String,
-	w: i32,
-	h: i32,
+	dimension: Dimension,
 	margin: Margin,
 }
 
@@ -321,43 +306,15 @@ impl InputText {
 		}
 	}
 
-	fn height(mut self, v: i32) -> Self {
-		self.h = v;
-		self
-	}
-
-	fn width(mut self, v: i32) -> Self {
-		self.w = v;
-		self
-	}
-
 	fn done(self) -> Control {
 		Control::InputText(self)
 	}
 }
 
-impl MarginBuilder for InputText {
-	fn get_margin(&self) -> Margin {
-		self.margin
-	}
-
-	fn set_margin(&mut self, m: Margin) {
-		self.margin = m
-	}
-}
-
-enum Control {
-	VStack(VStack),
-	HStack(HStack),
-	InputText(InputText),
-	Button(Button),
-}
-
-#[derive(Default)]
+#[derive(Default, MarginBuilder, DimensionBuilder)]
 struct Button {
 	title: String,
-	w: i32,
-	h: i32,
+	dimension: Dimension,
 	margin: Margin,
 }
 
@@ -369,28 +326,32 @@ impl Button {
 		}
 	}
 
-	fn height(mut self, v: i32) -> Self {
-		self.h = v;
-		self
-	}
-
-	fn width(mut self, v: i32) -> Self {
-		self.w = v;
-		self
-	}
-
 	fn done(self) -> Control {
 		Control::Button(self)
 	}
 }
 
-impl MarginBuilder for Button {
-	fn get_margin(&self) -> Margin {
-		self.margin
+#[derive(Default)]
+struct Dimension {
+	height: i32,
+	width: i32,
+}
+
+trait DimensionBuilder
+where
+	Self: Sized,
+{
+	fn set_height(&mut self, v: i32);
+	fn set_width(&mut self, v: i32);
+
+	fn height(mut self, v: i32) -> Self {
+		self.set_height(v);
+		self
 	}
 
-	fn set_margin(&mut self, m: Margin) {
-		self.margin = m
+	fn width(mut self, v: i32) -> Self {
+		self.set_width(v);
+		self
 	}
 }
 

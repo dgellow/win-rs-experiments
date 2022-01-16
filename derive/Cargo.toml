@@ -1,0 +1,13 @@
+[package]
+name = "dgellow_win-derive"
+version = "0.1.0"
+edition = "2021"
+authors = ["Samuel El-Borai <sam@elborai.me>"]
+
+[lib]
+name = "derive"
+proc-macro = true
+
+[dependencies]
+syn = { version = "1.0", features = ["full", "fold"] }
+quote = "1.0"

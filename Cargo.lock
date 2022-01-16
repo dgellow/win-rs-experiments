@@ -9,12 +9,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22a9137b95ea06864e018375b72adfb7db6e6f68cfc8df5a04d00288050485ee"
 
 [[package]]
-name = "dgellow_win-experiments"
+name = "dgellow_win-derive"
 version = "0.1.0"
 dependencies = [
- "embed-resource",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "dgellow_win-win32-gui"
+version = "0.1.0"
+dependencies = [
+ "dgellow_win-derive",
+ "embed-resource",
  "windows",
 ]
 

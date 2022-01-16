@@ -1,5 +1,5 @@
 [package]
-name = "dgellow_win-experiments"
+name = "dgellow_win-win32-gui"
 version = "0.1.0"
 edition = "2021"
 authors = ["Samuel El-Borai <sam@elborai.me>"]
@@ -9,8 +9,7 @@ name = "gui"
 
 [dependencies]
 # stretch2 = { git = "https://github.com/dioxuslabs/stretch" }
-syn = "1.0"
-quote = "1.0"
+dgellow_win-derive = { path = "../derive" }
 
 [dependencies.windows]
 version = "0.29.0"

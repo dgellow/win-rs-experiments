@@ -2,5 +2,5 @@
 
 members = [
 	"win32",
-	# "derive",
+	"derive",
 ]
