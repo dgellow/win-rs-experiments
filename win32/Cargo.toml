@@ -1,0 +1,32 @@
+[package]
+name = "dgellow_win-experiments"
+version = "0.1.0"
+edition = "2021"
+authors = ["Samuel El-Borai <sam@elborai.me>"]
+
+[lib]
+name = "gui"
+
+[dependencies]
+# stretch2 = { git = "https://github.com/dioxuslabs/stretch" }
+syn = "1.0"
+quote = "1.0"
+
+[dependencies.windows]
+version = "0.29.0"
+features = [
+	"alloc",
+	"Data_Xml_Dom",
+	"Win32_Foundation",
+	"Win32_System_Memory",
+	"Win32_System_Threading",
+	"Win32_Graphics_Gdi",
+	"Win32_UI_WindowsAndMessaging",
+	"Win32_UI_Controls",
+	"Win32_System_LibraryLoader",
+]
+
+[build-dependencies]
+# Embed windows manifests
+# See https://github.com/nabijaczleweli/rust-embed-resource
+embed-resource = "1.6"
