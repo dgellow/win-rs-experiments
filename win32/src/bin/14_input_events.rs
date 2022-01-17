@@ -88,7 +88,7 @@ impl WindowHandler for App {
 	}
 
 	fn on_create(&self) -> Result<MessageAction> {
-		let styles = TryInto::<WINDOW_STYLE>::try_into(style::ES_LEFT)
+		let styles = TryInto::<WINDOW_STYLE>::try_into(style::Left)
 			.expect("cannot cast to WINDOW_STYLE")
 			| (window::style::Visible | window::style::Child | window::style::Overlapped).0;
 		let ex_styles = window::ex_style::ClientEdge

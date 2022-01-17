@@ -20,7 +20,7 @@ pub fn create_text_input(
 	width: i32,
 	height: i32,
 ) -> Result<()> {
-	let styles = TryInto::<WINDOW_STYLE>::try_into(style::ES_LEFT)
+	let styles = TryInto::<WINDOW_STYLE>::try_into(style::Left)
 		.expect("cannot cast to WINDOW_STYLE")
 		| (window::style::Visible | window::style::Child | window::style::Overlapped).0;
 	let ex_styles = window::ex_style::ClientEdge
@@ -52,39 +52,62 @@ pub fn create_text_input(
 #[allow(non_upper_case_globals)]
 pub mod option {
 	use windows::Win32::UI::WindowsAndMessaging::*;
+	pub type Type = u32;
 
-	pub const LeftMargin: u32 = EC_LEFTMARGIN;
-	pub const RightMargin: u32 = EC_RIGHTMARGIN;
-	pub const UseFontInfo: u32 = EC_USEFONTINFO;
+	pub const LeftMargin: Type = EC_LEFTMARGIN;
+	pub const RightMargin: Type = EC_RIGHTMARGIN;
+	pub const UseFontInfo: Type = EC_USEFONTINFO;
 }
 
 // ??
+#[allow(dead_code)]
+#[allow(non_upper_case_globals)]
 pub mod edd {
-	pub const EDD_GET_DEVICE_INTERFACE_NAME: u32 = 1u32;
+	use windows::Win32::UI::WindowsAndMessaging::EDD_GET_DEVICE_INTERFACE_NAME;
+	pub type Type = u32;
+
+	pub const GetDeviceInterfaceName: Type = EDD_GET_DEVICE_INTERFACE_NAME;
 }
 
+#[allow(dead_code)]
+#[allow(non_upper_case_globals)]
 pub mod feature {
 	use windows::Win32::UI::WindowsAndMessaging::*;
+	pub type Type = EDIT_CONTROL_FEATURE;
 
-	pub const EDIT_CONTROL_FEATURE_ENTERPRISE_DATA_PROTECTION_PASTE_SUPPORT: EDIT_CONTROL_FEATURE =
-		0i32;
-	pub const EDIT_CONTROL_FEATURE_PASTE_NOTIFICATIONS: EDIT_CONTROL_FEATURE = 1i32;
+	pub const EnterpriseDataProtectionPasteSupport: Type =
+		EDIT_CONTROL_FEATURE_ENTERPRISE_DATA_PROTECTION_PASTE_SUPPORT;
+	pub const PasteNotifications: Type = EDIT_CONTROL_FEATURE_PASTE_NOTIFICATIONS;
 }
 
 // ???
+#[allow(dead_code)]
+#[allow(non_upper_case_globals)]
+
 pub mod eds {
-	pub const EDS_RAWMODE: u32 = 2u32;
-	pub const EDS_ROTATEDMODE: u32 = 4u32;
+	use windows::Win32::UI::WindowsAndMessaging::*;
+	pub type Type = u32;
+
+	pub const RawMode: Type = EDS_RAWMODE;
+	pub const RotatedMode: Type = EDS_ROTATEDMODE;
 }
 
 // ???
+#[allow(dead_code)]
+#[allow(non_upper_case_globals)]
+
 pub mod eimes {
-	pub const EIMES_CANCELCOMPSTRINFOCUS: u32 = 2u32;
-	pub const EIMES_COMPLETECOMPSTRKILLFOCUS: u32 = 4u32;
-	pub const EIMES_GETCOMPSTRATONCE: u32 = 1u32;
-	pub const EMSIS_COMPOSITIONSTRING: u32 = 1u32;
+	use windows::Win32::UI::WindowsAndMessaging::*;
+	pub type Type = u32;
+
+	pub const CancelCompStrInFocus: Type = EIMES_CANCELCOMPSTRINFOCUS;
+	pub const CompleteCompStrKillFocus: Type = EIMES_COMPLETECOMPSTRKILLFOCUS;
+	pub const GetCompStrAtOnce: Type = EIMES_GETCOMPSTRATONCE;
+	pub const CompositionString: Type = EMSIS_COMPOSITIONSTRING;
 }
 // event messages sent to win_proc
+#[allow(dead_code)]
+#[allow(non_upper_case_globals)]
 pub mod event {
 	use windows::Win32::UI::WindowsAndMessaging::*;
 	pub type Type = u32;
@@ -104,25 +127,36 @@ pub mod event {
 }
 
 // ???
+#[allow(dead_code)]
+#[allow(non_upper_case_globals)]
+
 pub mod end_session {
-	pub const ENDSESSION_CLOSEAPP: u32 = 1u32;
-	pub const ENDSESSION_CRITICAL: u32 = 1073741824u32;
-	pub const ENDSESSION_LOGOFF: u32 = 2147483648u32;
+	use windows::Win32::UI::WindowsAndMessaging::*;
+	pub type Type = u32;
+
+	pub const CloseApp: Type = ENDSESSION_CLOSEAPP;
+	pub const Critical: Type = ENDSESSION_CRITICAL;
+	pub const LogOff: Type = ENDSESSION_LOGOFF;
 }
 
+#[allow(dead_code)]
+#[allow(non_upper_case_globals)]
 pub mod style {
-	pub const ES_AUTOHSCROLL: i32 = 128i32;
-	pub const ES_AUTOVSCROLL: i32 = 64i32;
-	pub const ES_CENTER: i32 = 1i32;
-	pub const ES_LEFT: i32 = 0i32;
-	pub const ES_LOWERCASE: i32 = 16i32;
-	pub const ES_MULTILINE: i32 = 4i32;
-	pub const ES_NOHIDESEL: i32 = 256i32;
-	pub const ES_NUMBER: i32 = 8192i32;
-	pub const ES_OEMCONVERT: i32 = 1024i32;
-	pub const ES_PASSWORD: i32 = 32i32;
-	pub const ES_READONLY: i32 = 2048i32;
-	pub const ES_RIGHT: i32 = 2i32;
-	pub const ES_UPPERCASE: i32 = 8i32;
-	pub const ES_WANTRETURN: i32 = 4096i32;
+	use windows::Win32::UI::WindowsAndMessaging::*;
+	pub type Type = i32;
+
+	pub const AutoHScroll: Type = ES_AUTOHSCROLL;
+	pub const AutoVScroll: Type = ES_AUTOVSCROLL;
+	pub const Center: Type = ES_CENTER;
+	pub const Left: Type = ES_LEFT;
+	pub const Lowercase: Type = ES_LOWERCASE;
+	pub const Multiline: Type = ES_MULTILINE;
+	pub const NoHideSel: Type = ES_NOHIDESEL;
+	pub const Number: Type = ES_NUMBER;
+	pub const OemConvert: Type = ES_OEMCONVERT;
+	pub const Password: Type = ES_PASSWORD;
+	pub const Readonly: Type = ES_READONLY;
+	pub const Right: Type = ES_RIGHT;
+	pub const Uppercase: Type = ES_UPPERCASE;
+	pub const WantReturn: Type = ES_WANTRETURN;
 }
