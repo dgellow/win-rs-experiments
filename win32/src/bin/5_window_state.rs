@@ -209,7 +209,7 @@ mod main_window {
 		match message {
 			message::Paint => {
 				display!("WM_PAINT");
-				unsafe { ValidateRect(window, std::ptr::null()) };
+				// unsafe { ValidateRect(window, std::ptr::null()) };
 			}
 			message::Destroy => {
 				display!("WM_DESTROY");

@@ -80,7 +80,7 @@ impl WindowHandler for MainWindow {
 		match message {
 			message::Paint => {
 				display!("WM_PAINT");
-				unsafe { ValidateRect(h_window, std::ptr::null()) };
+				// unsafe { ValidateRect(self.h_window, std::ptr::null()) };
 				Ok(Continue)
 			}
 			message::MButtonDown => {

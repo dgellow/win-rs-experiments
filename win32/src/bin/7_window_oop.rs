@@ -143,7 +143,7 @@ impl Window {
 		match message {
 			message::Paint => {
 				display!("WM_PAINT");
-				unsafe { ValidateRect(self.h_window, std::ptr::null()) };
+				// unsafe { ValidateRect(self.h_window, std::ptr::null()) };
 				Continue
 			}
 			_ => Continue,

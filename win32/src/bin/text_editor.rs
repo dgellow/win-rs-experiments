@@ -204,7 +204,7 @@ mod main_window {
 
 		match message {
 			message::Paint => {
-				unsafe { ValidateRect(window, std::ptr::null()) };
+				// unsafe { ValidateRect(window, std::ptr::null()) };
 			}
 			message::Create => {
 				display!("WM_CREATE");

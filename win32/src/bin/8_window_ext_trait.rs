@@ -71,7 +71,7 @@ impl WindowBase for MainWindow {
 		match message {
 			message::Paint => {
 				display!("WM_PAINT");
-				unsafe { ValidateRect(h_window, std::ptr::null()) };
+				// unsafe { ValidateRect(h_window, std::ptr::null()) };
 				Continue
 			}
 			message::MButtonDown => {
