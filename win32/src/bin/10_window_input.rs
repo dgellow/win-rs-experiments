@@ -19,7 +19,7 @@ fn main() -> std::result::Result<(), ()> {
 }
 
 fn app() -> Result<()> {
-	let main_window = MainWindow::new(
+	let main_window = MainWindow::new_window(
 		"MainWindow",
 		"Input Window — Win32 💖 Rust",
 		Options {
@@ -35,26 +35,37 @@ fn app() -> Result<()> {
 }
 
 // 1. create our window type
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct MainWindow {
 	h_instance: HINSTANCE,
+	h_window: HWND,
 }
 
 // 2. implement traits WindowBase and WindowHandler
 impl WindowBase for MainWindow {
 	fn init_state(h_instance: HINSTANCE) -> Self {
-		Self { h_instance }
+		Self {
+			h_instance,
+			..Default::default()
+		}
 	}
 
 	fn h_instance(&self) -> HINSTANCE {
 		self.h_instance
+	}
+
+	fn set_h_window(&mut self, h_window: HWND) {
+		self.h_window = h_window;
+	}
+
+	fn h_window(&self) -> HWND {
+		self.h_window
 	}
 }
 
 impl WindowHandler for MainWindow {
 	fn on_message(
 		&self,
-		h_window: HWND,
 		message: message::Type,
 		_wparam: WPARAM,
 		_lparam: LPARAM,
@@ -64,9 +75,25 @@ impl WindowHandler for MainWindow {
 		match message {
 			message::Create => {
 				display!("WM_CREATE");
-				input::create_text_input(h_window, self.h_instance, "Type text", 0, 0, 200, 30)?;
-				input::create_text_input(h_window, self.h_instance, "Type text", 0, 40, 200, 30)?;
-				button::create(h_window, self.h_instance, "Click me!", 8, 80, 80, 60)?;
+				input::create_text_input(
+					self.h_window,
+					self.h_instance,
+					"Type text",
+					0,
+					0,
+					200,
+					30,
+				)?;
+				input::create_text_input(
+					self.h_window,
+					self.h_instance,
+					"Type text",
+					0,
+					40,
+					200,
+					30,
+				)?;
+				button::create(self.h_window, self.h_instance, "Click me!", 8, 80, 80, 60)?;
 				Ok(Continue)
 			}
 			message::Paint => {

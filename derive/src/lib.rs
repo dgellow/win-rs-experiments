@@ -69,10 +69,16 @@ pub fn derive_window_base(input: TokenStream) -> TokenStream {
 	let expanded = quote! {
 		impl WindowBase for #name {
 			fn init_state(h_instance: HINSTANCE) -> Self {
-				Self { h_instance }
+				Self { h_instance, ..Default::default()}
 			}
 			fn h_instance(&self) -> HINSTANCE {
 				self.h_instance
+			}
+			fn set_h_window(&mut self, h_window: HWND) {
+				self.h_window = h_window;
+			}
+			fn h_window(&self) -> HWND {
+				self.h_window
 			}
 		}
 	};

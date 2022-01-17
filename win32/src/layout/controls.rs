@@ -17,12 +17,18 @@ pub struct VStack {
 }
 
 impl VStack {
-	pub fn new(spacing: i32, items: Vec<Control>) -> Self {
-		Self {
-			spacing,
-			items,
-			..Default::default()
-		}
+	pub fn new() -> Self {
+		Default::default()
+	}
+
+	pub fn spacing(mut self, v: i32) -> Self {
+		self.spacing = v;
+		self
+	}
+
+	pub fn items(mut self, v: Vec<Control>) -> Self {
+		self.items = v;
+		self
 	}
 
 	pub fn done(self) -> Control {
@@ -38,12 +44,18 @@ pub struct HStack {
 }
 
 impl HStack {
-	pub fn new(spacing: i32, items: Vec<Control>) -> Self {
-		Self {
-			spacing,
-			items,
-			..Default::default()
-		}
+	pub fn new() -> Self {
+		Default::default()
+	}
+
+	pub fn spacing(mut self, v: i32) -> Self {
+		self.spacing = v;
+		self
+	}
+
+	pub fn items(mut self, v: Vec<Control>) -> Self {
+		self.items = v;
+		self
 	}
 
 	pub fn done(self) -> Control {

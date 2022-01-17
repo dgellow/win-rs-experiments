@@ -20,7 +20,7 @@ fn main() -> std::result::Result<(), ()> {
 }
 
 fn app() -> Result<()> {
-	let main_window = MainWindow::new(
+	let main_window = MainWindow::new_window(
 		"MainWindow",
 		"Simplified Window — Win32 💖 Rust",
 		window::Options {
@@ -39,26 +39,38 @@ fn app() -> Result<()> {
 }
 
 // 1. create our window type
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct MainWindow {
 	h_instance: HINSTANCE,
+	h_window: HWND,
 }
 
 // 2. implement traits for WindowBase and WindowHandler
 impl WindowBase for MainWindow {
 	fn init_state(h_instance: HINSTANCE) -> Self {
-		Self { h_instance }
+		Self {
+			h_instance,
+			..Default::default()
+		}
 	}
 
 	fn h_instance(&self) -> HINSTANCE {
 		self.h_instance
+	}
+
+	fn set_h_window(&mut self, h_window: HWND) {
+		self.h_window = h_window;
+	}
+
+	fn h_window(&self) -> HWND {
+		self.h_window
 	}
 }
 
 impl WindowHandler for MainWindow {
 	fn on_message(
 		&self,
-		h_window: HWND,
+
 		message: message::Type,
 		_wparam: WPARAM,
 		_lparam: LPARAM,

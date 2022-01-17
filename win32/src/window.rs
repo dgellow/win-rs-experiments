@@ -1,6 +1,7 @@
 use crate::{
 	assert::{assert_eq, assert_ne, Result, WithLastWin32Error},
 	cursor::{self, load_cursor},
+	display,
 	icon::{self, load_icon, Icon},
 	impl_ops_for_all,
 	wide_string::ToWide,
@@ -52,16 +53,18 @@ impl Default for Options {
 	}
 }
 
-pub trait WindowBase {
+pub trait WindowBase: Default {
 	fn init_state(h_instance: HINSTANCE) -> Self;
 	fn h_instance(&self) -> HINSTANCE;
+	fn set_h_window(&mut self, h_window: HWND);
+	fn h_window(&self) -> HWND;
 }
 
 pub trait WindowHandler: WindowBase
 where
 	Self: Sized,
 {
-	fn new<Opts>(class_name: &str, title: &str, options: Opts) -> Result<Self>
+	fn new_window<Opts>(class_name: &str, title: &str, options: Opts) -> Result<Self>
 	where
 		Self: Sized,
 		Opts: Into<Option<Options>>,
@@ -140,14 +143,6 @@ where
 		}
 	}
 
-	fn on_message(
-		&self,
-		h_window: HWND,
-		message: message::Type,
-		wparam: WPARAM,
-		lparam: LPARAM,
-	) -> Result<MessageAction>;
-
 	extern "system" fn win_proc(
 		h_window: HWND,
 		message: message::Type,
@@ -164,6 +159,7 @@ where
 				message::Create => {
 					let create_struct = lparam as *mut CREATESTRUCTW;
 					let state = (*create_struct).lpCreateParams as *mut Self;
+					(*state).set_h_window(h_window);
 					SetWindowLongPtrW(h_window, GWLP_USERDATA, state as _);
 					state
 				}
@@ -175,9 +171,7 @@ where
 				return default_win_proc();
 			}
 
-			let action = (*state)
-				.on_message(h_window, message, wparam, lparam)
-				.unwrap();
+			let action = (*state).on_message(message, wparam, lparam).unwrap();
 
 			// set font to all controls
 			if message == message::Create {
@@ -202,6 +196,44 @@ where
 			);
 		}
 		BOOL(1)
+	}
+
+	fn on_message(
+		&self,
+		message: message::Type,
+		_wparam: WPARAM,
+		_lparam: LPARAM,
+	) -> Result<MessageAction> {
+		use MessageAction::*;
+
+		match message {
+			message::Create => {
+				display!("WM_CREATE");
+				self.on_create()
+			}
+			message::Paint => {
+				display!("WM_PAINT");
+				self.on_paint()
+			}
+			message::Size => {
+				display!("WM_SIZE");
+				self.on_size()
+			}
+			_ => Ok(Continue),
+		}
+	}
+
+	fn on_create(&self) -> Result<MessageAction> {
+		Ok(MessageAction::Continue)
+	}
+
+	fn on_paint(&self) -> Result<MessageAction> {
+		// unsafe { ValidateRect(self.h_window(), std::ptr::null()) };
+		Ok(MessageAction::Continue)
+	}
+
+	fn on_size(&self) -> Result<MessageAction> {
+		Ok(MessageAction::Continue)
 	}
 }
 
