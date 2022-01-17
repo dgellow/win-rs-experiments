@@ -9,7 +9,6 @@ use gui::{
 };
 use windows::Win32::{
 	Foundation::{HINSTANCE, HWND, LPARAM, WPARAM},
-	Graphics::Gdi::ValidateRect,
 };
 
 fn main() -> std::result::Result<(), ()> {

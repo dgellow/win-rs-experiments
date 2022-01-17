@@ -32,7 +32,7 @@ mod main_window {
 	};
 	use windows::Win32::{
 		Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
-		Graphics::Gdi::{UpdateWindow, ValidateRect, HBRUSH},
+		Graphics::Gdi::{UpdateWindow, HBRUSH},
 		System::LibraryLoader::GetModuleHandleExW,
 		UI::WindowsAndMessaging::{
 			AppendMenuW, CreateMenu, CreateWindowExW, DefWindowProcW, DispatchMessageW,

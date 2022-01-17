@@ -9,7 +9,7 @@ use gui::{
 };
 use windows::Win32::{
 	Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, WPARAM},
-	Graphics::Gdi::{UpdateWindow, ValidateRect, HBRUSH},
+	Graphics::Gdi::{UpdateWindow, HBRUSH},
 	System::LibraryLoader::GetModuleHandleExW,
 	UI::WindowsAndMessaging::{
 		CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW, GetWindowLongPtrW,
