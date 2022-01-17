@@ -3,6 +3,7 @@ use derive::{DimensionBuilder, MarginBuilder, PaddingBuilder};
 use super::margins::{Dimension, DimensionBuilder, Margin, MarginBuilder, Padding, PaddingBuilder};
 
 pub enum Control {
+	None,
 	VStack(VStack),
 	HStack(HStack),
 	InputText(InputText),

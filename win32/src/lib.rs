@@ -15,6 +15,9 @@ pub mod rich_edit;
 pub mod wide_string;
 pub mod window;
 
+mod simple_app;
+pub use crate::simple_app::*;
+
 pub struct Point {
 	pub x: i32,
 	pub y: i32,

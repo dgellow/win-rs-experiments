@@ -38,6 +38,7 @@ impl Screen {
 
 	fn render_recurse(&mut self, root: Control) -> Result<Rect> {
 		match root {
+			Control::None => Ok(Default::default()),
 			Control::HStack(stack) => {
 				let init_x = self.offset.left;
 				let init_y = self.offset.top;
