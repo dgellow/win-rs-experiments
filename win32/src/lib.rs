@@ -16,6 +16,7 @@ pub mod wide_string;
 pub mod window;
 
 mod simple_app;
+pub mod theme;
 pub use crate::simple_app::*;
 
 pub struct Point {
