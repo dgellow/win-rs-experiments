@@ -35,3 +35,11 @@ impl Default for Point {
 pub fn null_pwstr() -> PWSTR {
 	PWSTR(std::ptr::null_mut())
 }
+
+pub fn hiword(word: usize) -> usize {
+	(word >> 16) & 0xffff
+}
+
+pub fn loword(word: usize) -> usize {
+	word & 0xffff
+}

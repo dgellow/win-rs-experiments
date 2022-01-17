@@ -84,20 +84,23 @@ pub mod eimes {
 	pub const EIMES_GETCOMPSTRATONCE: u32 = 1u32;
 	pub const EMSIS_COMPOSITIONSTRING: u32 = 1u32;
 }
-// ???
-pub mod en {
-	pub const EN_AFTER_PASTE: u32 = 2049u32;
-	pub const EN_ALIGN_LTR_EC: u32 = 1792u32;
-	pub const EN_ALIGN_RTL_EC: u32 = 1793u32;
-	pub const EN_BEFORE_PASTE: u32 = 2048u32;
-	pub const EN_CHANGE: u32 = 768u32;
-	pub const EN_ERRSPACE: u32 = 1280u32;
-	pub const EN_HSCROLL: u32 = 1537u32;
-	pub const EN_KILLFOCUS: u32 = 512u32;
-	pub const EN_MAXTEXT: u32 = 1281u32;
-	pub const EN_SETFOCUS: u32 = 256u32;
-	pub const EN_UPDATE: u32 = 1024u32;
-	pub const EN_VSCROLL: u32 = 1538u32;
+// event messages sent to win_proc
+pub mod event {
+	use windows::Win32::UI::WindowsAndMessaging::*;
+	pub type Type = u32;
+
+	pub const AfterPaste: Type = EN_AFTER_PASTE;
+	pub const AlignLtrEc: Type = EN_ALIGN_LTR_EC;
+	pub const AlignRtlEc: Type = EN_ALIGN_RTL_EC;
+	pub const BeforePaste: Type = EN_BEFORE_PASTE;
+	pub const Change: Type = EN_CHANGE;
+	pub const ErrSpace: Type = EN_ERRSPACE;
+	pub const HScroll: Type = EN_HSCROLL;
+	pub const KillFocus: Type = EN_KILLFOCUS;
+	pub const MaxText: Type = EN_MAXTEXT;
+	pub const SetFocus: Type = EN_SETFOCUS;
+	pub const Update: Type = EN_UPDATE;
+	pub const VScroll: Type = EN_VSCROLL;
 }
 
 // ???
