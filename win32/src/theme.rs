@@ -5,9 +5,9 @@ use crate::{
 	wide_string::ToWide,
 };
 
-pub fn is_dark_theme() -> Result<bool> {
+pub fn is_light_theme() -> Result<bool> {
 	// based on https://stackoverflow.com/questions/51334674/how-to-detect-windows-10-light-dark-mode-in-win32-application
-	let mut buffer: Vec<u8> = vec![0; 32];
+	let mut buffer: [u8; 4] = [0; 4];
 	let mut cb_data: u32 = (buffer.len()).try_into().unwrap();
 	let res = unsafe {
 		RegGetValueW(
@@ -28,10 +28,10 @@ pub fn is_dark_theme() -> Result<bool> {
 		format!("failed to read key from registry: err_code={}", res).as_str(),
 	)?;
 
-	let dark_mode = buffer.into_iter().all(|x| x == 0);
-	Ok(dark_mode)
+	let light_mode = i32::from_le_bytes(buffer) == 1;
+	Ok(light_mode)
 }
 
-pub fn is_light_theme() -> Result<bool> {
-	Ok(!is_dark_theme()?)
+pub fn is_dark_theme() -> Result<bool> {
+	Ok(!is_light_theme()?)
 }
