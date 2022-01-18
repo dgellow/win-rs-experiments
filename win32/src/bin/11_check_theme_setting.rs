@@ -7,14 +7,12 @@ use derive::WindowBase;
 use gui::{
 	assert::Result,
 	display,
-	layout::*,
 	theme::{app_theme_settings, Theme},
 	wide_string::ToWide,
 	window::{self, message, MessageAction, Options, WindowBase, WindowHandler},
 };
 use windows::Win32::{
-	Foundation::{ERROR_MORE_DATA, ERROR_SUCCESS, HINSTANCE, HWND, PWSTR},
-	System::Registry::{RegGetValueW, HKEY_CURRENT_USER, RRF_RT_DWORD, RRF_RT_REG_DWORD},
+	Foundation::{HINSTANCE, HWND, PWSTR},
 };
 
 fn main() -> Result<()> {

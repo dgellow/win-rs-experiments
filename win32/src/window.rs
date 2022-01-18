@@ -245,7 +245,7 @@ where
 		Ok(MessageAction::Continue)
 	}
 
-	fn on_theme_change(&self, app_theme: Theme) -> Result<MessageAction> {
+	fn on_theme_change(&self, _app_theme: Theme) -> Result<MessageAction> {
 		Ok(MessageAction::Continue)
 	}
 }
