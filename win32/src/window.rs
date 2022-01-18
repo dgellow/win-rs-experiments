@@ -4,10 +4,11 @@ use crate::{
 	display,
 	icon::{self, load_icon, Icon},
 	impl_ops_for_all,
+	theme::{app_theme_settings, Theme},
 	wide_string::ToWide,
 };
 use windows::Win32::{
-	Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, WPARAM},
+	Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, PWSTR, WPARAM},
 	Graphics::Gdi::{GetStockObject, UpdateWindow, DEFAULT_GUI_FONT},
 	System::LibraryLoader::GetModuleHandleExW,
 	UI::WindowsAndMessaging::*,
@@ -202,7 +203,7 @@ where
 		&self,
 		message: message::Type,
 		_wparam: WPARAM,
-		_lparam: LPARAM,
+		lparam: LPARAM,
 	) -> Result<MessageAction> {
 		use MessageAction::*;
 
@@ -219,6 +220,14 @@ where
 				display!("WM_SIZE");
 				self.on_size()
 			}
+			message::Settingchange => unsafe {
+				let pwstr = lparam as *mut PWSTR;
+				if *pwstr == "ImmersiveColorSet".to_wide().as_pwstr() {
+					self.on_theme_change(app_theme_settings()?)
+				} else {
+					Ok(Continue)
+				}
+			},
 			_ => Ok(Continue),
 		}
 	}
@@ -233,6 +242,10 @@ where
 	}
 
 	fn on_size(&self) -> Result<MessageAction> {
+		Ok(MessageAction::Continue)
+	}
+
+	fn on_theme_change(&self, app_theme: Theme) -> Result<MessageAction> {
 		Ok(MessageAction::Continue)
 	}
 }

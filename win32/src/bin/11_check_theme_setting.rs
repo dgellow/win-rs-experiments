@@ -5,12 +5,10 @@
 
 use derive::WindowBase;
 use gui::{
-	assert::{assert_eq, Result},
-	display, hiword,
-	input::{self},
+	assert::Result,
+	display,
 	layout::*,
-	loword,
-	theme::is_dark_theme,
+	theme::{app_theme_settings, Theme},
 	wide_string::ToWide,
 	window::{self, message, MessageAction, Options, WindowBase, WindowHandler},
 };
@@ -68,16 +66,17 @@ impl WindowHandler for App {
 			message::Create => return self.on_create(),
 
 			// based on https://stackoverflow.com/questions/51334674/how-to-detect-windows-10-light-dark-mode-in-win32-application
-			message::Wininichange => {
-				if lparam == "ImmersiveColorSet".to_wide().as_pwstr() {
-					display!("WM_WININICHANGE");
-					if is_dark_theme()? {
-						display!("Dark theme enabled!");
-					} else {
-						display!("Light theme enabled!");
-					}
+			message::Settingchange => unsafe {
+				let pwstr = lparam as *mut PWSTR;
+				if *pwstr == "ImmersiveColorSet".to_wide().as_pwstr() {
+					display!("WM_SETTINGSCHANGE");
+					match app_theme_settings()? {
+						Theme::Light => display!("Light theme enabled!"),
+						Theme::Dark => display!("Dark theme enabled!"),
+						Theme::Unknown => display!("Cannot identify current theme"),
+					};
 				}
-			}
+			},
 
 			_ => {} // display!("other message => {:?}", other),
 		};
@@ -85,40 +84,11 @@ impl WindowHandler for App {
 	}
 
 	fn on_create(&self) -> Result<MessageAction> {
-		if is_dark_theme()? {
-			display!("Dark theme enabled!");
-		} else {
-			display!("Light theme enabled!");
-		}
-
-		let control = VStack::new()
-			.left_padding(10)
-			.spacing(10)
-			.items(vec![
-				HStack::new()
-					.spacing(10)
-					.items(vec![
-						InputText::new("hello").height(20).width(100).done(),
-						InputText::new("world").height(20).width(100).done(),
-					])
-					.done(),
-				HStack::new()
-					.spacing(10)
-					.items(vec![
-						InputText::new("hello").height(20).width(100).done(),
-						InputText::new("world").height(20).width(100).done(),
-					])
-					.done(),
-				Button::new("My Button 1")
-					.height(40)
-					.width(100)
-					.left_margin(30)
-					.done(),
-			])
-			.done();
-
-		let mut screen = Screen::new(self.h_instance, self.h_window);
-		screen.render(control)?;
+		match app_theme_settings()? {
+			Theme::Light => display!("Light theme enabled!"),
+			Theme::Dark => display!("Dark theme enabled!"),
+			Theme::Unknown => display!("Cannot identify current theme"),
+		};
 
 		Ok(MessageAction::Continue)
 	}
