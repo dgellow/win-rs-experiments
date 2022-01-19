@@ -62,7 +62,7 @@ impl WindowBase for MainWindow {
 
 impl WindowHandler for MainWindow {
 	fn on_message(
-		&self,
+		&mut self,
 		message: message::Type,
 		_wparam: WPARAM,
 		_lparam: LPARAM,

@@ -61,7 +61,7 @@ impl WindowBase for MainWindow {
 	}
 
 	fn on_message(
-		&self,
+		&mut self,
 		_h_window: HWND,
 		message: message::Type,
 		_wparam: WPARAM,
@@ -89,7 +89,7 @@ trait WindowBase {
 	fn init_state(h_instance: HINSTANCE) -> Self;
 	fn h_instance(&self) -> HINSTANCE;
 	fn on_message(
-		&self,
+		&mut self,
 		h_window: HWND,
 		message: message::Type,
 		wparam: WPARAM,

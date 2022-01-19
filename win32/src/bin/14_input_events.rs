@@ -53,7 +53,7 @@ const EDIT_CLASS: &str = "EDIT";
 
 impl WindowHandler for App {
 	fn on_message(
-		&self,
+		&mut self,
 		message: window::message::Type,
 		wparam: windows::Win32::Foundation::WPARAM,
 		_lparam: windows::Win32::Foundation::LPARAM,

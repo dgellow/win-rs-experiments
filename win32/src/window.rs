@@ -1,11 +1,12 @@
 use crate::{
-	assert::{assert_eq, assert_ne, Result, WithLastWin32Error},
+	assert::{assert_eq, assert_ne, assert_not_null, Result, WithLastWin32Error, WrappedError},
 	cursor::{self, load_cursor},
 	display,
 	icon::{self, load_icon, Icon},
 	impl_ops_for_all,
 	theme::{app_theme_settings, Theme},
 	wide_string::ToWide,
+	window_long::{get_window_long_ptr, set_window_long_ptr},
 };
 use windows::Win32::{
 	Foundation::{BOOL, HINSTANCE, HWND, LPARAM, LRESULT, PWSTR, WPARAM},
@@ -14,12 +15,13 @@ use windows::Win32::{
 	UI::WindowsAndMessaging::*,
 };
 
-pub type WindowProc =
+pub type WinProc =
 	unsafe extern "system" fn(window: HWND, message: message::Type, WPARAM, LPARAM) -> LRESULT;
 
 impl_ops_for_all!(class_style::Type, style::Type, ex_style::Type);
 
 pub enum MessageAction {
+	None,
 	Continue,
 	FullyHandled,
 }
@@ -59,6 +61,46 @@ pub trait WindowBase: Default {
 	fn h_instance(&self) -> HINSTANCE;
 	fn set_h_window(&mut self, h_window: HWND);
 	fn h_window(&self) -> HWND;
+
+	#[allow(clippy::too_many_arguments)]
+	fn create_window(
+		&mut self,
+		class_name: &str,
+		text: Option<&str>,
+		ex_style: Option<ex_style::Type>,
+		style: Option<style::Type>,
+		x: i32,
+		y: i32,
+		width: i32,
+		height: i32,
+		h_instance: Option<HINSTANCE>,
+		parent: Option<HWND>,
+	) -> Result<HWND> {
+		let hwnd = unsafe {
+			CreateWindowExW(
+				if let Some(s) = ex_style { s.0 } else { 0 },
+				class_name.to_wide().as_pwstr(),
+				if let Some(t) = text { t } else { "" }.to_wide().as_pwstr(),
+				if let Some(s) = style { s.0 } else { 0 },
+				x,
+				y,
+				width,
+				height,
+				parent,
+				None,
+				h_instance,
+				// pass ptr-to-self to win-proc, via WM_CREATE lparam
+				self as *mut _ as _,
+			)
+		};
+		assert_ne(
+			hwnd,
+			0,
+			format!("failed to create window for class {:?}", class_name).as_str(),
+		)
+		.with_last_win32_err()?;
+		Ok(hwnd)
+	}
 }
 
 pub trait WindowHandler: WindowBase
@@ -108,27 +150,68 @@ where
 
 		let mut state = Self::init_state(h_instance);
 
-		let h_window = unsafe {
-			CreateWindowExW(
-				opts.window_ext_style.0,
-				class_name.to_wide().as_pwstr(),
-				title.to_wide().as_pwstr(),
-				opts.window_style.0,
-				opts.x,
-				opts.y,
-				opts.width,
-				opts.height,
-				None,
-				None,
-				h_instance,
-				&mut state as *mut _ as _,
-			)
-		};
-		assert_ne(h_window, 0, "failed to create window").with_last_win32_err()?;
+		let h_window = state.create_window(
+			class_name,
+			Some(title),
+			Some(opts.window_ext_style),
+			Some(opts.window_style),
+			opts.x,
+			opts.y,
+			opts.width,
+			opts.height,
+			Some(h_instance),
+			None,
+		)?;
+		// CreateWindowExW(
+		// 	opts.window_ext_style.0,
+		// 	class_name.to_wide().as_pwstr(),
+		// 	title.to_wide().as_pwstr(),
+		// 	opts.window_style.0,
+		// 	opts.x,
+		// 	opts.y,
+		// 	opts.width,
+		// 	opts.height,
+		// 	None,
+		// 	None,
+		// 	h_instance,
+		// 	&mut state as *mut _ as _,
+		// )
+		// assert_ne(h_window, 0, "failed to create window").with_last_win32_err()?;
 
 		unsafe { ShowWindow(h_window, show_cmd::Show) };
 		unsafe { UpdateWindow(h_window) };
 
+		Ok(state)
+	}
+
+	// TODO: find better name
+	// TODO: should only be called once per app (or top window?)
+	fn set_state_from_lparam(h_window: HWND, lparam: LPARAM) -> Result<*mut Self> {
+		let create_struct = lparam as *mut CREATESTRUCTW;
+		assert_not_null(create_struct, "WM_CREATE lparam cannot be null")?;
+		unsafe {
+			let state = (*create_struct).lpCreateParams as *mut Self;
+			(*state).set_h_window(h_window);
+			set_window_long_ptr(h_window, GWLP_USERDATA, state as _)
+				.wrap_err("set_state_from_lparam failed")?;
+
+			Ok(state)
+		}
+	}
+
+	// TODO: find better name
+	// TODO: should the child have its own state instead of a pointer to the whole app?
+	fn set_child_state(&mut self, child: HWND) -> Result<()> {
+		let state = self as *mut Self;
+		let res = set_window_long_ptr(child, GWLP_USERDATA, state as _).wrap_err("")?;
+		assert_eq(res, 0, "failed to set GWLP_USERDATA").with_last_win32_err()?;
+		Ok(())
+	}
+
+	// TODO: find better name
+	fn get_state(h_window: HWND) -> Result<*mut Self> {
+		let state = get_window_long_ptr(h_window, GWLP_USERDATA)? as *mut Self;
+		assert_not_null(state, "GWLP_USERDATA cannot be null")?;
 		Ok(state)
 	}
 
@@ -151,26 +234,33 @@ where
 		lparam: LPARAM,
 	) -> LRESULT {
 		use MessageAction::*;
+
+		display!("enter win_proc");
+
 		unsafe {
+			let default_win_proc = || DefWindowProcW(h_window, message, wparam, lparam);
+			// if state.is_null() {
+			// 	return default_win_proc();
+			// }
+
 			let state: *mut Self = match message {
+				// called before Create, no state has yet been associated with window handler
+				message::GetMinmaxinfo | message::NcCreate | message::NcCalcSize => {
+					return default_win_proc();
+				}
 				message::Destroy => {
 					PostQuitMessage(0);
 					std::ptr::null_mut()
 				}
 				message::Create => {
-					let create_struct = lparam as *mut CREATESTRUCTW;
-					let state = (*create_struct).lpCreateParams as *mut Self;
-					(*state).set_h_window(h_window);
-					SetWindowLongPtrW(h_window, GWLP_USERDATA, state as _);
-					state
+					display!("WM_CREATE");
+					Self::set_state_from_lparam(h_window, lparam).unwrap()
 				}
-				_ => GetWindowLongPtrW(h_window, GWLP_USERDATA) as *mut _,
+				_ => {
+					display!("message => {}", message);
+					Self::get_state(h_window).unwrap()
+				}
 			};
-
-			let default_win_proc = || DefWindowProcW(h_window, message, wparam, lparam);
-			if state.is_null() {
-				return default_win_proc();
-			}
 
 			let action = (*state).on_message(message, wparam, lparam).unwrap();
 
@@ -181,7 +271,7 @@ where
 			}
 
 			match action {
-				Continue => default_win_proc(),
+				Continue | None => default_win_proc(),
 				FullyHandled => 0,
 			}
 		}
@@ -200,17 +290,22 @@ where
 	}
 
 	fn on_message(
-		&self,
+		&mut self,
 		message: message::Type,
 		_wparam: WPARAM,
 		lparam: LPARAM,
 	) -> Result<MessageAction> {
 		use MessageAction::*;
 
+		display!("enter on_message");
+
 		match message {
 			message::Create => {
 				display!("WM_CREATE");
-				self.on_create()
+				match self.on_create_mut()? {
+					None => self.on_create(),
+					other => Ok(other),
+				}
 			}
 			message::Paint => {
 				display!("WM_PAINT");
@@ -232,21 +327,25 @@ where
 		}
 	}
 
+	fn on_create_mut(&mut self) -> Result<MessageAction> {
+		Ok(MessageAction::None)
+	}
+
 	fn on_create(&self) -> Result<MessageAction> {
-		Ok(MessageAction::Continue)
+		Ok(MessageAction::None)
 	}
 
 	fn on_paint(&self) -> Result<MessageAction> {
 		// unsafe { ValidateRect(self.h_window(), std::ptr::null()) };
-		Ok(MessageAction::Continue)
+		Ok(MessageAction::None)
 	}
 
 	fn on_size(&self) -> Result<MessageAction> {
-		Ok(MessageAction::Continue)
+		Ok(MessageAction::None)
 	}
 
 	fn on_theme_change(&self, _app_theme: Theme) -> Result<MessageAction> {
-		Ok(MessageAction::Continue)
+		Ok(MessageAction::None)
 	}
 }
 
@@ -601,6 +700,7 @@ pub mod ex_style {
 #[allow(non_upper_case_globals)]
 pub mod style {
 	use windows::Win32::UI::WindowsAndMessaging::*;
+	#[derive(Copy, Clone)]
 	pub struct Type(pub WINDOW_STYLE);
 
 	pub const Overlapped: Type = Type(WS_OVERLAPPED);

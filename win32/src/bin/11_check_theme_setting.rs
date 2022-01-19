@@ -52,7 +52,7 @@ impl App {
 
 impl WindowHandler for App {
 	fn on_message(
-		&self,
+		&mut self,
 		message: window::message::Type,
 		_wparam: windows::Win32::Foundation::WPARAM,
 		lparam: windows::Win32::Foundation::LPARAM,

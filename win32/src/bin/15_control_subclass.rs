@@ -1,0 +1,314 @@
+// Implement combobox subclassing example from https://docs.microsoft.com/en-us/windows/win32/controls/subclass-a-combo-box#complete-example
+
+use derive::WindowBase;
+use gui::{
+	assert::{assert_eq, Result},
+	display, err_display,
+	window::{message, style, MessageAction, Options, WindowBase, WindowHandler},
+	window_long::set_window_long_ptr,
+};
+use windows::Win32::{
+	Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, POINT, WPARAM},
+	UI::{
+		Input::KeyboardAndMouse::{GetFocus, SetFocus, VK_ESCAPE, VK_RETURN, VK_TAB},
+		WindowsAndMessaging::{
+			CallWindowProcW, ChildWindowFromPoint, SendMessageW, CBS_DROPDOWN, CB_ADDSTRING,
+			CB_ERR, CB_FINDSTRINGEXACT, CB_GETCURSEL, CB_SETCURSEL, GWLP_WNDPROC, WINDOW_STYLE,
+			WNDPROC,
+		},
+	},
+};
+
+fn main() -> std::result::Result<(), ()> {
+	let app = App::new("Control Subclass — Win32 💖 Rust");
+	match app.run() {
+		Ok(_) => Ok(()),
+		Err(e) => {
+			err_display!("App error: {}", e);
+			Err(())
+		}
+	}
+}
+
+#[derive(Debug, Default, WindowBase, Clone)]
+pub struct App {
+	h_instance: HINSTANCE,
+	h_window: HWND,
+	title: String,
+	edit_base_win_proc: Option<isize>,
+	h_combo1: Option<HWND>,
+	h_combo2: Option<HWND>,
+	h_edit1: Option<HWND>,
+	h_edit2: Option<HWND>,
+}
+
+impl WindowHandler for App {
+	fn on_message(
+		&mut self,
+		message: message::Type,
+		_wparam: WPARAM,
+		_lparam: LPARAM,
+	) -> Result<MessageAction> {
+		use gui::window::MessageAction::*;
+
+		match message {
+			message::Create => self.on_create_mut(),
+
+			message::Setfocus => {
+				display!("on_message => SetFocus");
+
+				unsafe { SetFocus(self.h_combo1.unwrap()) };
+				Ok(FullyHandled)
+			}
+
+			app_message::Tab => {
+				display!("on_message => Tab");
+
+				let focus = unsafe { GetFocus() };
+				if focus == self.h_combo1.unwrap() {
+					unsafe { SetFocus(self.h_combo2.unwrap()) };
+				} else {
+					unsafe { SetFocus(self.h_combo1.unwrap()) };
+				}
+				Ok(FullyHandled)
+			}
+
+			app_message::Esc => {
+				display!("on_message => Esc");
+
+				unsafe {
+					let combo = if GetFocus() == self.h_edit1.unwrap() {
+						self.h_combo1.unwrap()
+					} else {
+						self.h_combo2.unwrap()
+					};
+
+					// clear selection and focus main window
+					let res = SendMessageW(
+						combo,
+						CB_SETCURSEL,
+						WPARAM::MAX, /* equivalent to (WPARAM)(-1) */
+						0,
+					);
+					assert_eq(res, 0, "failed to clear selection").unwrap();
+					SetFocus(self.h_instance);
+				}
+
+				Ok(FullyHandled)
+			}
+
+			app_message::Enter => {
+				display!("on_message => Enter");
+
+				unsafe {
+					let combo = if GetFocus() == self.h_edit1.unwrap() {
+						self.h_combo1.unwrap()
+					} else {
+						self.h_combo2.unwrap()
+					};
+					SetFocus(self.h_window);
+
+					//  if nothing is selected, select first item
+					let cb_err: isize = CB_ERR.try_into().unwrap();
+					let selected = SendMessageW(combo, CB_GETCURSEL, 0, 0);
+					if selected == cb_err {
+						let mut buffer: [u8; 256] = [0; 256];
+						let text = SendMessageW(
+							combo,
+							message::GetText,
+							buffer.len(),
+							buffer.as_mut_ptr() as _,
+						);
+						if text == 0 {
+							return Ok(FullyHandled);
+						}
+
+						let mut index = SendMessageW(
+							combo,
+							CB_FINDSTRINGEXACT,
+							WPARAM::MAX,
+							buffer.as_mut_ptr() as _,
+						);
+
+						// add string and select it
+						if index == cb_err {
+							index = SendMessageW(combo, CB_ADDSTRING, 0, buffer.as_mut_ptr() as _);
+						}
+						if index != cb_err {
+							SendMessageW(combo, CB_SETCURSEL, index.try_into().unwrap(), 0);
+						}
+					}
+				}
+
+				Ok(FullyHandled)
+			}
+
+			_ => {
+				display!("message => {}", message);
+				Ok(Continue)
+			}
+		}
+	}
+
+	fn on_create_mut(&mut self) -> Result<MessageAction> {
+		// 1. create two combobox
+		let class_name = "COMBOBOX";
+		let combo_style: WINDOW_STYLE = CBS_DROPDOWN.try_into().unwrap();
+		let style = style::Child | style::Visible | style::Type(combo_style);
+
+		let combo1 = self.create_window(
+			class_name,
+			None,
+			None,
+			Some(style),
+			10,
+			10,
+			100,
+			50,
+			None,
+			Some(self.h_window),
+		)?;
+
+		let combo2 = self.create_window(
+			class_name,
+			None,
+			None,
+			Some(style),
+			120,
+			10,
+			100,
+			50,
+			Some(self.h_instance),
+			Some(self.h_window),
+		)?;
+
+		// 2. get edit control handle from each combobox
+		let pt = POINT { x: 1, y: 1 };
+		let edit1 = unsafe { ChildWindowFromPoint(combo1, pt) };
+		let edit2 = unsafe { ChildWindowFromPoint(combo2, pt) };
+
+		// 3. set state pointer as user data
+		self.set_child_state(edit1)?;
+		self.set_child_state(edit2)?;
+
+		// 4. change the win-proc for both edit handlers. Both base win-proc are the same, we only need one pointer.
+		let base_win_proc =
+			set_window_long_ptr(edit1, GWLP_WNDPROC, Self::edit_win_proc as *mut isize as _)?;
+		set_window_long_ptr(edit2, GWLP_WNDPROC, Self::edit_win_proc as *mut isize as _)?;
+
+		// 5. keep references to combobox, edits, and base win-proc
+		self.h_combo1 = Some(combo1);
+		self.h_combo2 = Some(combo2);
+		self.h_edit1 = Some(edit1);
+		self.h_edit2 = Some(edit2);
+		self.edit_base_win_proc = Some(base_win_proc);
+
+		Ok(MessageAction::Continue)
+	}
+}
+
+impl App {
+	pub fn new(title: &str) -> Self {
+		Self {
+			title: title.to_owned(),
+			..Default::default()
+		}
+	}
+
+	pub fn run(&self) -> Result<()> {
+		let main_window = Self::new_window(
+			"MainWindow",
+			self.title.as_str(),
+			Options {
+				..Default::default()
+			},
+		)?;
+		display!("main_window: {:?}", main_window);
+
+		let res = Self::event_loop();
+		display!("event_loop result: {} ({:#X})", res, res);
+
+		Ok(())
+	}
+
+	extern "system" fn edit_win_proc(
+		h_window: HWND,
+		message: message::Type,
+		wparam: WPARAM,
+		lparam: LPARAM,
+	) -> LRESULT {
+		display!("enter edit_win_proc");
+
+		let state = Self::get_state(h_window).unwrap();
+
+		// pass Tab, Esc, and Return key events to main window
+		match message {
+			message::KeyDown => {
+				display!("edit_win_proc => KeyDown");
+
+				let key: u16 = wparam.try_into().unwrap();
+				unsafe {
+					match key {
+						VK_TAB => {
+							display!("edit_win_proc => VK_TAB");
+
+							SendMessageW((*state).h_window, app_message::Tab, wparam, lparam);
+							return 0;
+						}
+						VK_ESCAPE => {
+							display!("edit_win_proc => VK_ESCAPE");
+
+							SendMessageW((*state).h_window, app_message::Esc, wparam, lparam);
+							return 0;
+						}
+						VK_RETURN => {
+							display!("edit_win_proc => VK_RETURN");
+
+							SendMessageW((*state).h_window, app_message::Enter, wparam, lparam);
+							return 0;
+						}
+						_ => {
+							display!("edit_win_proc => KeyDown => key {}", key)
+						}
+					}
+				}
+			}
+			message::KeyUp | message::Char => {
+				display!("edit_win_proc => KeyUp | Char");
+
+				let char: u16 = wparam.try_into().unwrap();
+				if let VK_TAB | VK_ESCAPE | VK_RETURN = char {
+					return 0;
+				}
+			}
+
+			_ => {
+				display!("edit_win_proc => message {}", message)
+			}
+		}
+
+		// pass all other messages to base win-proc
+		unsafe {
+			let base_proc = (*state)
+				.edit_base_win_proc
+				.expect("no self.edit_base_win_proc");
+
+			display!("call edit_base_win_proc");
+			let proc: WNDPROC = Some(std::mem::transmute(base_proc));
+
+			display!("transmuted edit_base_win_proc to WNDPROC");
+			CallWindowProcW(proc, h_window, message, wparam, lparam)
+		}
+	}
+}
+
+#[allow(dead_code)]
+#[allow(non_upper_case_globals)]
+mod app_message {
+	use windows::Win32::UI::WindowsAndMessaging::WM_USER;
+	pub type Type = u32;
+
+	pub const Tab: Type = WM_USER;
+	pub const Esc: Type = WM_USER + 1;
+	pub const Enter: Type = WM_USER + 2;
+}
