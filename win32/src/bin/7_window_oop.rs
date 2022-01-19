@@ -5,6 +5,7 @@ use gui::{
 	icon::{self, load_icon},
 	wide_string::ToWide,
 	window::{class_style, ex_style, message, show_cmd, style},
+	window_long::{get_window_long_ptr, set_window_long_ptr},
 	Point,
 };
 use windows::Win32::{
@@ -12,9 +13,9 @@ use windows::Win32::{
 	Graphics::Gdi::{UpdateWindow, HBRUSH},
 	System::LibraryLoader::GetModuleHandleExW,
 	UI::WindowsAndMessaging::{
-		CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW, GetWindowLongPtrW,
-		PostQuitMessage, RegisterClassExW, SetWindowLongPtrW, ShowWindow, TranslateMessage,
-		COLOR_WINDOW, CREATESTRUCTW, GWLP_USERDATA, MSG, WNDCLASSEXW,
+		CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW, PostQuitMessage,
+		RegisterClassExW, ShowWindow, TranslateMessage, COLOR_WINDOW, CREATESTRUCTW, GWLP_USERDATA,
+		MSG, WNDCLASSEXW,
 	},
 };
 
@@ -182,10 +183,10 @@ impl Window {
 					display!("WM_CREATE");
 					let create_struct = lparam as *mut CREATESTRUCTW;
 					let state = (*create_struct).lpCreateParams as *mut Window;
-					SetWindowLongPtrW(h_window, GWLP_USERDATA, state as _);
+					set_window_long_ptr(h_window, GWLP_USERDATA, state as _).unwrap();
 					state
 				}
-				_ => GetWindowLongPtrW(h_window, GWLP_USERDATA) as *mut _,
+				_ => get_window_long_ptr(h_window, GWLP_USERDATA).unwrap() as *mut _,
 			};
 
 			let default_win_proc = || DefWindowProcW(h_window, message, wparam, lparam);

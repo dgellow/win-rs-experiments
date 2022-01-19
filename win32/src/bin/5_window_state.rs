@@ -28,6 +28,7 @@ mod main_window {
 		icon::{self, load_icon},
 		wide_string::ToWide,
 		window::{class_style, ex_style, message, show_cmd, style},
+		window_long::{get_window_long_ptr, set_window_long_ptr},
 		Point,
 	};
 	use windows::Win32::{
@@ -35,9 +36,9 @@ mod main_window {
 		Graphics::Gdi::{UpdateWindow, HBRUSH},
 		System::LibraryLoader::GetModuleHandleExW,
 		UI::WindowsAndMessaging::{
-			CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW, GetWindowLongPtrW,
-			PostQuitMessage, RegisterClassExW, SetWindowLongPtrW, ShowWindow, TranslateMessage,
-			COLOR_WINDOW, CREATESTRUCTW, GWLP_USERDATA, MSG, WNDCLASSEXW,
+			CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW, PostQuitMessage,
+			RegisterClassExW, ShowWindow, TranslateMessage, COLOR_WINDOW, CREATESTRUCTW,
+			GWLP_USERDATA, MSG, WNDCLASSEXW,
 		},
 	};
 
@@ -187,14 +188,14 @@ mod main_window {
 				display!("state_info during creation: {:?}", *state_info);
 
 				// 6. set window USER_DATA to our data pointer
-				SetWindowLongPtrW(window, GWLP_USERDATA, state_info as _);
+				set_window_long_ptr(window, GWLP_USERDATA, state_info as _).unwrap();
 
 				// 7. modify data
 				(*state_info).info = "how are you?".to_owned();
 			}
 		} else {
 			// 8. get our data pointer from window USER_DATA
-			let ptr = unsafe { GetWindowLongPtrW(window, GWLP_USERDATA) };
+			let ptr = get_window_long_ptr(window, GWLP_USERDATA).unwrap();
 			state_info = ptr as *mut _;
 		}
 

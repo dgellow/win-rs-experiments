@@ -45,6 +45,19 @@ impl<T> WithLastWin32Error<T> for Result<T> {
 	}
 }
 
+pub trait WrappedError<T> {
+	fn wrap_err(self, msg: &str) -> Result<T>;
+}
+
+impl<T> WrappedError<T> for Result<T> {
+	fn wrap_err(self, msg: &str) -> Result<T> {
+		match self {
+			Ok(i) => Ok(i),
+			Err(e) => Err(format!("{}: {}", msg, e.to_string(),).into()),
+		}
+	}
+}
+
 pub fn assert_eq<Param>(param1: Param, param2: Param, msg: &str) -> Result<()>
 where
 	Param: std::cmp::PartialEq,
@@ -63,4 +76,11 @@ where
 		return Ok(());
 	}
 	Err(msg.into())
+}
+
+pub fn assert_not_null<Param>(param: *const Param, msg: &str) -> Result<()> {
+	if param.is_null() {
+		return Err(msg.into());
+	}
+	Ok(())
 }

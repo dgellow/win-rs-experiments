@@ -3,9 +3,7 @@ use gui::{
 	button, display, err_display, input,
 	window::{message, Options, WindowBase, WindowHandler},
 };
-use windows::Win32::{
-	Foundation::{HINSTANCE, HWND, LPARAM, WPARAM},
-};
+use windows::Win32::Foundation::{HINSTANCE, HWND, LPARAM, WPARAM};
 
 fn main() -> std::result::Result<(), ()> {
 	match app() {

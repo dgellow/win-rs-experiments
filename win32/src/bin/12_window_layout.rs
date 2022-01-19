@@ -7,9 +7,7 @@ use gui::{
 	input::create_text_input,
 	window::{message, Options, WindowBase, WindowHandler},
 };
-use windows::Win32::{
-	Foundation::{HINSTANCE, HWND, LPARAM, WPARAM},
-};
+use windows::Win32::Foundation::{HINSTANCE, HWND, LPARAM, WPARAM};
 
 fn main() -> std::result::Result<(), ()> {
 	match app() {

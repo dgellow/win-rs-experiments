@@ -11,9 +11,7 @@ use gui::{
 	wide_string::ToWide,
 	window::{self, message, MessageAction, Options, WindowBase, WindowHandler},
 };
-use windows::Win32::{
-	Foundation::{HINSTANCE, HWND, PWSTR},
-};
+use windows::Win32::Foundation::{HINSTANCE, HWND, PWSTR};
 
 fn main() -> Result<()> {
 	let app = App::new("Window Dark Mode — Win32 💖 Rust");

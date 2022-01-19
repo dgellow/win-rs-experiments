@@ -1,5 +1,8 @@
 use windows::Win32::{Foundation::PWSTR, UI::WindowsAndMessaging::CW_USEDEFAULT};
 
+mod simple_app;
+pub use crate::simple_app::*;
+
 pub mod assert;
 pub mod button;
 pub mod class;
@@ -12,12 +15,10 @@ pub mod macros;
 pub mod menu;
 pub mod message_box;
 pub mod rich_edit;
+pub mod theme;
 pub mod wide_string;
 pub mod window;
-
-mod simple_app;
-pub mod theme;
-pub use crate::simple_app::*;
+pub mod window_long;
 
 pub struct Point {
 	pub x: i32,
