@@ -1,3 +1,5 @@
+use std::sync::Once;
+
 use crate::{
 	assert::{assert_eq, assert_ne, assert_not_null, Result, WithLastWin32Error, WrappedError},
 	cursor::{self, load_cursor},
@@ -75,6 +77,7 @@ pub trait WindowBase: Default {
 		height: i32,
 		h_instance: Option<HINSTANCE>,
 		parent: Option<HWND>,
+		set_create_data: bool,
 	) -> Result<HWND> {
 		let hwnd = unsafe {
 			CreateWindowExW(
@@ -90,7 +93,11 @@ pub trait WindowBase: Default {
 				None,
 				h_instance,
 				// pass ptr-to-self to win-proc, via WM_CREATE lparam
-				self as *mut _ as _,
+				if set_create_data {
+					self as *mut _ as _
+				} else {
+					std::ptr::null_mut()
+				},
 			)
 		};
 		assert_ne(
@@ -107,7 +114,7 @@ pub trait WindowHandler: WindowBase
 where
 	Self: Sized,
 {
-	fn new_window<Opts>(class_name: &str, title: &str, options: Opts) -> Result<Self>
+	fn new_window<Opts>(class_name: &str, title: &str, options: Opts) -> Result<Box<Self>>
 	where
 		Self: Sized,
 		Opts: Into<Option<Options>>,
@@ -148,7 +155,7 @@ where
 		let class = unsafe { RegisterClassExW(&wnd_class) };
 		assert_ne(class, 0, "failed to register class").with_last_win32_err()?;
 
-		let mut state = Self::init_state(h_instance);
+		let mut state = Box::new(Self::init_state(h_instance));
 
 		let h_window = state.create_window(
 			class_name,
@@ -161,6 +168,7 @@ where
 			opts.height,
 			Some(h_instance),
 			None,
+			true,
 		)?;
 		// CreateWindowExW(
 		// 	opts.window_ext_style.0,
@@ -181,12 +189,14 @@ where
 		unsafe { ShowWindow(h_window, show_cmd::Show) };
 		unsafe { UpdateWindow(h_window) };
 
+		display!("new_window => state addr {:p}", &state);
+
 		Ok(state)
 	}
 
 	// TODO: find better name
 	// TODO: should only be called once per app (or top window?)
-	fn set_state_from_lparam(h_window: HWND, lparam: LPARAM) -> Result<*mut Self> {
+	fn set_window_state_from_lparam(h_window: HWND, lparam: LPARAM) -> Result<*mut Self> {
 		let create_struct = lparam as *mut CREATESTRUCTW;
 		assert_not_null(create_struct, "WM_CREATE lparam cannot be null")?;
 		unsafe {
@@ -202,15 +212,15 @@ where
 	// TODO: find better name
 	// TODO: should the child have its own state instead of a pointer to the whole app?
 	fn set_child_state(&mut self, child: HWND) -> Result<()> {
-		let state = self as *mut Self;
-		let res = set_window_long_ptr(child, GWLP_USERDATA, state as _).wrap_err("")?;
-		assert_eq(res, 0, "failed to set GWLP_USERDATA").with_last_win32_err()?;
+		let state: isize = self as *mut _ as _;
+		set_window_long_ptr(child, GWLP_USERDATA, state).wrap_err("set_child_state failed")?;
 		Ok(())
 	}
 
 	// TODO: find better name
-	fn get_state(h_window: HWND) -> Result<*mut Self> {
-		let state = get_window_long_ptr(h_window, GWLP_USERDATA)? as *mut Self;
+	fn get_window_state(h_window: HWND) -> Result<*mut Self> {
+		let state =
+			get_window_long_ptr(h_window, GWLP_USERDATA).wrap_err("get_state failed")? as *mut Self;
 		assert_not_null(state, "GWLP_USERDATA cannot be null")?;
 		Ok(state)
 	}
@@ -227,53 +237,62 @@ where
 		}
 	}
 
-	extern "system" fn win_proc(
+	/// # Safety
+	///
+	/// This function is full of thread unsafetiness and other dangerous stuff.
+	unsafe extern "system" fn win_proc(
 		h_window: HWND,
 		message: message::Type,
 		wparam: WPARAM,
 		lparam: LPARAM,
 	) -> LRESULT {
 		use MessageAction::*;
+		static mut USER_DATA: isize = 0;
 
-		display!("enter win_proc");
+		let default_win_proc = || DefWindowProcW(h_window, message, wparam, lparam);
 
-		unsafe {
-			let default_win_proc = || DefWindowProcW(h_window, message, wparam, lparam);
-			// if state.is_null() {
-			// 	return default_win_proc();
-			// }
-
-			let state: *mut Self = match message {
-				// called before Create, no state has yet been associated with window handler
-				message::GetMinmaxinfo | message::NcCreate | message::NcCalcSize => {
-					return default_win_proc();
-				}
-				message::Destroy => {
-					PostQuitMessage(0);
-					std::ptr::null_mut()
-				}
-				message::Create => {
-					display!("WM_CREATE");
-					Self::set_state_from_lparam(h_window, lparam).unwrap()
-				}
-				_ => {
-					display!("message => {}", message);
-					Self::get_state(h_window).unwrap()
-				}
-			};
-
-			let action = (*state).on_message(message, wparam, lparam).unwrap();
-
-			// set font to all controls
-			if message == message::Create {
-				let font = GetStockObject(DEFAULT_GUI_FONT);
-				EnumChildWindows(h_window, Some(Self::set_font), font);
+		match message {
+			message::Create => {
+				let state = Self::set_window_state_from_lparam(h_window, lparam).unwrap();
+				USER_DATA = state as _;
+			}
+			// called before Create, no state has yet been associated with window handler
+			message::GetMinmaxinfo | message::NcCreate | message::NcCalcSize => {
+				return default_win_proc();
+			}
+			// some very noisy messages that can be generally ignored
+			message::NcHitTest | message::NcMouseMove | message::Setcursor => {
+				return default_win_proc();
+			}
+			message::Destroy => {
+				PostQuitMessage(0);
+				// 0
+				// std::ptr::null_mut()
 			}
 
-			match action {
-				Continue | None => default_win_proc(),
-				FullyHandled => 0,
-			}
+			_ => {}
+		};
+
+		assert_ne(USER_DATA, 0, "no win_proc static USER_DATA").unwrap();
+		let state: *mut Self = USER_DATA as _;
+
+		// display!("win_proc => message {:?}", message);
+		// display!("win_proc => USER_DATA {:?}", USER_DATA);
+		// display!("win_proc => state.h_instance {:?}", (*state).h_instance());
+
+		let action = (*state).on_message(message, wparam, lparam).unwrap();
+
+		// set font to all controls
+		if message == message::Create {
+			let font = GetStockObject(DEFAULT_GUI_FONT);
+			EnumChildWindows(h_window, Some(Self::set_font), font);
+		}
+
+		display!("");
+
+		match action {
+			Continue | None => default_win_proc(),
+			FullyHandled => 0,
 		}
 	}
 
@@ -297,7 +316,7 @@ where
 	) -> Result<MessageAction> {
 		use MessageAction::*;
 
-		display!("enter on_message");
+		// display!("enter on_message");
 
 		match message {
 			message::Create => {
