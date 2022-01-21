@@ -3,7 +3,7 @@ use crate::{
 	wide_string::ToWide,
 };
 use windows::Win32::{
-	Foundation::{GetLastError, SetLastError, BOOL, HANDLE, HWND},
+	Foundation::{GetLastError, SetLastError, HANDLE, HWND},
 	UI::WindowsAndMessaging::{
 		GetPropW, GetWindowLongPtrW, GetWindowLongW, RemovePropW, SetPropW, SetWindowLongPtrW,
 		SetWindowLongW, WINDOW_LONG_PTR_INDEX,

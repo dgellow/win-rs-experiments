@@ -4,7 +4,7 @@ use std::{fmt::Debug, sync::Once};
 
 use derive::WindowBase;
 use gui::{
-	assert::{assert_eq, assert_ne, assert_not_null, Result, WithLastWin32Error},
+	assert::{assert_not_null, Result},
 	display, err_display,
 	window::{
 		message, style, MessageAction, Options, WinProc, WindowBase, WindowCreateData,
@@ -13,13 +13,12 @@ use gui::{
 	window_long::{get_property, set_property, set_window_long_ptr},
 };
 use windows::Win32::{
-	Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, POINT, WPARAM},
+	Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM},
 	UI::{
 		Input::KeyboardAndMouse::{GetFocus, SetFocus, VK_ESCAPE, VK_RETURN, VK_TAB},
 		WindowsAndMessaging::{
-			CallWindowProcW, ChildWindowFromPoint, GetWindow, SendMessageW, CBS_DROPDOWN,
-			CB_ADDSTRING, CB_ERR, CB_FINDSTRINGEXACT, CB_GETCURSEL, CB_SETCURSEL, GWLP_WNDPROC,
-			GW_CHILD, WINDOW_STYLE,
+			CallWindowProcW, GetWindow, SendMessageW, CBS_DROPDOWN, CB_ADDSTRING, CB_ERR,
+			CB_FINDSTRINGEXACT, CB_GETCURSEL, CB_SETCURSEL, GWLP_WNDPROC, GW_CHILD, WINDOW_STYLE,
 		},
 	},
 };
@@ -123,7 +122,6 @@ impl WindowHandler for App {
 		// Note: the base window may already be using GWLP_USERDATA, so it is safer to pass data another way
 		//
 		// Note: different ways to pass data to the win_proc are discussed here: https://stackoverflow.com/questions/117792/best-method-for-storing-this-pointer-for-use-in-wndproc
-
 		set_property(edit1, APP_STATE_PROPERTY, self)?;
 		set_property(edit2, APP_STATE_PROPERTY, self)?;
 
@@ -257,7 +255,7 @@ impl App {
 	}
 
 	pub fn run(&self) -> Result<()> {
-		let main_window = Self::new_window(
+		let _main_window = Self::new_window(
 			"MainWindow",
 			self.title.as_str(),
 			Options {
@@ -280,10 +278,8 @@ impl App {
 		wparam: WPARAM,
 		lparam: LPARAM,
 	) -> LRESULT {
-		// let state: *const Self
 		static mut STATE: *const App = std::ptr::null();
 		static INIT: Once = Once::new();
-
 		INIT.call_once(|| {
 			STATE = get_property(h_window, APP_STATE_PROPERTY).unwrap() as _;
 		});

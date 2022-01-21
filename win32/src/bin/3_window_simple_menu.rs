@@ -33,7 +33,6 @@ mod main_window {
 	};
 	use windows::Win32::System::LibraryLoader::GetModuleHandleExW;
 	use windows::Win32::{
-		Foundation::BOOL,
 		Graphics::Gdi::{UpdateWindow, HBRUSH},
 		UI::WindowsAndMessaging::{
 			AppendMenuW, CreateMenu, CreatePopupMenu, CreateWindowExW, DefWindowProcW,

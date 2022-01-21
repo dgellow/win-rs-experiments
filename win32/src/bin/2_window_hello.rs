@@ -30,7 +30,6 @@ mod main_window {
 	};
 	use windows::Win32::System::LibraryLoader::GetModuleHandleExW;
 	use windows::Win32::{
-		Foundation::BOOL,
 		Graphics::Gdi::{BeginPaint, EndPaint, TextOutW, UpdateWindow, HBRUSH, HDC, PAINTSTRUCT},
 		UI::WindowsAndMessaging::{
 			CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW, PostQuitMessage,
