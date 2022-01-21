@@ -1,5 +1,3 @@
-
-
 use crate::{
 	assert::{assert_eq, assert_ne, assert_not_null, Result, WithLastWin32Error, WrappedError},
 	cursor::{self, load_cursor},
@@ -313,7 +311,7 @@ where
 	fn on_message(
 		&mut self,
 		message: message::Type,
-		_wparam: WPARAM,
+		wparam: WPARAM,
 		lparam: LPARAM,
 	) -> Result<MessageAction> {
 		use MessageAction::*;
@@ -336,6 +334,14 @@ where
 				display!("WM_SIZE");
 				self.on_size()
 			}
+			message::Command => {
+				display!("WM_COMMAND");
+				self.on_command(lparam, wparam)
+			}
+			message::Move => {
+				display!("WM_MOVE");
+				self.on_move()
+			}
 			message::Settingchange => unsafe {
 				let pwstr = lparam as *mut PWSTR;
 				if *pwstr == "ImmersiveColorSet".to_wide().as_pwstr() {
@@ -357,7 +363,14 @@ where
 	}
 
 	fn on_paint(&self) -> Result<MessageAction> {
-		// unsafe { ValidateRect(self.h_window(), std::ptr::null()) };
+		Ok(MessageAction::None)
+	}
+
+	fn on_command(&self, _lparam: LPARAM, _wparamm: WPARAM) -> Result<MessageAction> {
+		Ok(MessageAction::None)
+	}
+
+	fn on_move(&self) -> Result<MessageAction> {
 		Ok(MessageAction::None)
 	}
 
