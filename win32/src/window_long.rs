@@ -1,11 +1,14 @@
+use crate::{
+	assert::{assert_eq, assert_ne, Result, WithLastWin32Error},
+	wide_string::ToWide,
+};
 use windows::Win32::{
-	Foundation::{GetLastError, SetLastError, HWND},
+	Foundation::{GetLastError, SetLastError, BOOL, HANDLE, HWND},
 	UI::WindowsAndMessaging::{
-		GetWindowLongPtrW, GetWindowLongW, SetWindowLongPtrW, SetWindowLongW, WINDOW_LONG_PTR_INDEX,
+		GetPropW, GetWindowLongPtrW, GetWindowLongW, RemovePropW, SetPropW, SetWindowLongPtrW,
+		SetWindowLongW, WINDOW_LONG_PTR_INDEX,
 	},
 };
-
-use crate::assert::{assert_eq, Result, WithLastWin32Error};
 
 pub fn get_window_long_ptr(h_window: HWND, index: WINDOW_LONG_PTR_INDEX) -> Result<isize> {
 	// About GetWindowLongPtr return value.
@@ -98,4 +101,68 @@ pub fn set_window_long(h_window: HWND, index: WINDOW_LONG_PTR_INDEX, val: i32) -
 		assert_eq(last_err, 0, "SetWindowLongW error").with_last_win32_err()?;
 		Ok(ret)
 	}
+}
+
+pub fn set_property<T>(window: HWND, name: &str, val: &mut T) -> Result<()> {
+	// About SetProp return value.
+	//
+	// Quote:
+	//   If the data handle and string are added to the property list, the return value is nonzero.
+	//   If the function fails, the return value is zero. To get extended error information, call GetLastError.
+	//
+	// Source: https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setpropw#return-value
+	let ptr: isize = val as *mut _ as _;
+	let ret = unsafe { SetPropW(window, name.to_wide().as_pwstr(), HANDLE(ptr)) };
+	assert_ne(ret, BOOL(0), "SetPropW error").with_last_win32_err()?;
+	Ok(())
+}
+
+pub fn get_property<T>(window: HWND, name: &str) -> Result<*mut T> {
+	let ret = unsafe { GetPropW(window, name.to_wide().as_pwstr()) };
+	let handle = match ret.ok() {
+		Ok(h) => h.0,
+		Err(e) => {
+			return Err(format!("invalid handle returned by GetPropW: {:?}", e.message()).into())
+				.with_last_win32_err();
+		}
+	};
+	let val: *mut T = handle as *mut _;
+	Ok(val)
+}
+
+pub fn remove_property<T>(window: HWND, name: &str) -> Result<*mut T> {
+	// About RemoveProp return value.
+	//
+	// Quote:
+	//   The return value identifies the specified data. If the data cannot be found in the specified property list, the
+	//   return value is NULL.
+	//
+	//   The return value is the hData value that was passed to SetProp; it is an application-defined value. Note, this
+	//   function only destroys the association between the data and the window. If appropriate, the application must
+	//   free the data handles associated with entries removed from a property list. The application can remove only
+	//   those properties it has added. It must not remove properties added by other applications or by the system
+	//   itself.
+	//
+	//   The RemoveProp function returns the data handle associated with the string so that the application can free the
+	//   data associated with the handle.
+	//
+	//   Starting with Windows Vista, RemoveProp is subject to the restrictions of User Interface Privilege Isolation
+	//   (UIPI). A process can only call this function on a window belonging to a process of lesser or equal integrity
+	//   level. When UIPI blocks property changes, GetLastError will return 5.
+	//
+	// Sources:
+	// - https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-removepropa#return-value
+	// - https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-removepropa#remarks
+	let ret = unsafe { RemovePropW(window, name.to_wide().as_pwstr()) };
+	let handle = match ret.ok() {
+		Ok(h) => h.0,
+		Err(e) => {
+			return Err(
+				format!("invalid handle returned by RemovePropW: {:?}", e.message()).into(),
+			)
+			.with_last_win32_err();
+		}
+	};
+	let val: *mut T = handle as *mut _;
+	Ok(val)
 }
