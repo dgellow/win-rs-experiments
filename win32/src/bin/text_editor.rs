@@ -65,8 +65,8 @@ mod main_window {
 
 		let mut h_instance: HINSTANCE = Default::default();
 		assert_eq(
-			unsafe { GetModuleHandleExW(0, None, &mut h_instance as *mut _) },
-			BOOL(1),
+			unsafe { GetModuleHandleExW(0, None, &mut h_instance as *mut _) }.as_bool(),
+			true,
 			"failed to get module handle",
 		)
 		.with_last_win32_err()?;
@@ -164,7 +164,7 @@ mod main_window {
 					.expect("failed to convert menu to usize"),
 				"&File",
 			);
-			assert_eq(res, BOOL(1), "failed to append menu").with_last_win32_err()?;
+			assert_eq(res.as_bool(), true, "failed to append menu").with_last_win32_err()?;
 
 			res = AppendMenuW(
 				menubar,
@@ -174,7 +174,7 @@ mod main_window {
 					.expect("failed to convert menu to usize"),
 				"&Edit",
 			);
-			assert_eq(res, BOOL(1), "failed to append menu").with_last_win32_err()?;
+			assert_eq(res.as_bool(), true, "failed to append menu").with_last_win32_err()?;
 
 			res = AppendMenuW(
 				menubar,
@@ -184,11 +184,11 @@ mod main_window {
 					.expect("failed to convert menu to usize"),
 				"&View",
 			);
-			assert_eq(res, BOOL(1), "failed to append menu").with_last_win32_err()?;
+			assert_eq(res.as_bool(), true, "failed to append menu").with_last_win32_err()?;
 
 			// set window menu
 			res = SetMenu(window, menubar);
-			assert_eq(res, BOOL(1), "failed to set window menu").with_last_win32_err()?;
+			assert_eq(res.as_bool(), true, "failed to set window menu").with_last_win32_err()?;
 		}
 
 		Ok(())
@@ -244,10 +244,10 @@ mod main_window {
 				parent.top + horizontal_margin,
 				parent.right - vertical_margin,
 				parent.bottom - horizontal_margin,
-				BOOL(1),
+				true,
 			);
 		};
 
-		BOOL(1)
+		true.into()
 	}
 }

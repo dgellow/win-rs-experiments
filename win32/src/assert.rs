@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use windows::Win32::Foundation::{GetLastError, WIN32_ERROR};
 
 pub type Error = Box<dyn std::error::Error + Sync + Send>;
@@ -60,22 +62,22 @@ impl<T> WrappedError<T> for Result<T> {
 
 pub fn assert_eq<Param>(param1: Param, param2: Param, msg: &str) -> Result<()>
 where
-	Param: std::cmp::PartialEq,
+	Param: std::cmp::PartialEq + Debug,
 {
 	if param1.eq(&param2) {
 		return Ok(());
 	}
-	Err(msg.into())
+	Err(format!("{} (param1={:?}, param2={:?})", msg, param1, param2).into())
 }
 
 pub fn assert_ne<Param>(param1: Param, param2: Param, msg: &str) -> Result<()>
 where
-	Param: std::cmp::PartialEq,
+	Param: std::cmp::PartialEq + Debug,
 {
 	if param1.ne(&param2) {
 		return Ok(());
 	}
-	Err(msg.into())
+	Err(format!("{} (param1={:?}, param2={:?})", msg, param1, param2).into())
 }
 
 pub fn assert_not_null<Param>(param: *const Param, msg: &str) -> Result<()> {

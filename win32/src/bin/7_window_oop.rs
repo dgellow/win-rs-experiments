@@ -56,8 +56,8 @@ impl Window {
 	pub fn new(class_name: &str, title: &str) -> Result<Window> {
 		let mut h_instance: HINSTANCE = Default::default();
 		assert_eq(
-			unsafe { GetModuleHandleExW(0, None, &mut h_instance as *mut _) },
-			BOOL(1),
+			unsafe { GetModuleHandleExW(0, None, &mut h_instance as *mut _) }.as_bool(),
+			true,
 			"failed to get module handle",
 		)
 		.with_last_win32_err()?;

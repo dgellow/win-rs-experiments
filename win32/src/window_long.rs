@@ -113,7 +113,7 @@ pub fn set_property<T>(window: HWND, name: &str, val: &mut T) -> Result<()> {
 	// Source: https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setpropw#return-value
 	let ptr: isize = val as *mut _ as _;
 	let ret = unsafe { SetPropW(window, name.to_wide().as_pwstr(), HANDLE(ptr)) };
-	assert_ne(ret, BOOL(0), "SetPropW error").with_last_win32_err()?;
+	assert_ne(ret.as_bool(), false, "SetPropW error").with_last_win32_err()?;
 	Ok(())
 }
 

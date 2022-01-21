@@ -73,8 +73,8 @@ mod main_window {
 
 		let mut h_instance: HINSTANCE = Default::default();
 		assert_eq(
-			unsafe { GetModuleHandleExW(0, None, &mut h_instance as *mut _) },
-			BOOL(1),
+			unsafe { GetModuleHandleExW(0, None, &mut h_instance as *mut _) }.as_bool(),
+			true,
 			"failed to get module handle",
 		)
 		.with_last_win32_err()?;
@@ -162,7 +162,7 @@ mod main_window {
 			let submenu = CreatePopupMenu();
 
 			let mut res = AppendMenuW(menu, menu::item_flag::String, IDM_FILE_NEW, "&New");
-			assert_eq(res, BOOL(1), "failed to append menu").with_last_win32_err()?;
+			assert_eq(res.as_bool(), true, "failed to append menu").with_last_win32_err()?;
 
 			res = AppendMenuW(
 				menu,
@@ -172,7 +172,7 @@ mod main_window {
 					.expect("failed to convert isize to usize"),
 				"&Import",
 			);
-			assert_eq(res, BOOL(1), "failed to append menu").with_last_win32_err()?;
+			assert_eq(res.as_bool(), true, "failed to append menu").with_last_win32_err()?;
 
 			res = AppendMenuW(
 				submenu,
@@ -180,7 +180,7 @@ mod main_window {
 				IDM_IMPORT_MAIL,
 				"Import &mail",
 			);
-			assert_eq(res, BOOL(1), "failed to append menu").with_last_win32_err()?;
+			assert_eq(res.as_bool(), true, "failed to append menu").with_last_win32_err()?;
 
 			res = AppendMenuW(
 				menubar,
@@ -188,10 +188,10 @@ mod main_window {
 				menu.try_into().expect("failed to convert isize to usize"),
 				"&File",
 			);
-			assert_eq(res, BOOL(1), "failed to append menu").with_last_win32_err()?;
+			assert_eq(res.as_bool(), true, "failed to append menu").with_last_win32_err()?;
 
 			res = SetMenu(window, menubar);
-			assert_eq(res, BOOL(1), "failed to append menu").with_last_win32_err()?;
+			assert_eq(res.as_bool(), true, "failed to append menu").with_last_win32_err()?;
 		}
 
 		Ok(())
