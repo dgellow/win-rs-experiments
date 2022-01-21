@@ -1,26 +1,34 @@
 // Implement combobox subclassing example from https://docs.microsoft.com/en-us/windows/win32/controls/subclass-a-combo-box#complete-example
 
+use std::{fmt::Debug, sync::Once};
+
 use derive::WindowBase;
 use gui::{
-	assert::{assert_eq, Result},
+	assert::{assert_eq, assert_ne, assert_not_null, Result, WithLastWin32Error},
 	display, err_display,
-	window::{message, style, MessageAction, Options, WindowBase, WindowHandler},
-	window_long::set_window_long_ptr,
+	window::{
+		message, style, MessageAction, Options, WinProc, WindowBase, WindowCreateData,
+		WindowHandler,
+	},
+	window_long::{get_property, set_property, set_window_long_ptr},
 };
 use windows::Win32::{
 	Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, POINT, WPARAM},
 	UI::{
 		Input::KeyboardAndMouse::{GetFocus, SetFocus, VK_ESCAPE, VK_RETURN, VK_TAB},
 		WindowsAndMessaging::{
-			CallWindowProcW, ChildWindowFromPoint, SendMessageW, CBS_DROPDOWN, CB_ADDSTRING,
-			CB_ERR, CB_FINDSTRINGEXACT, CB_GETCURSEL, CB_SETCURSEL, GWLP_WNDPROC, WINDOW_STYLE,
-			WNDPROC,
+			CallWindowProcW, ChildWindowFromPoint, GetWindow, SendMessageW, CBS_DROPDOWN,
+			CB_ADDSTRING, CB_ERR, CB_FINDSTRINGEXACT, CB_GETCURSEL, CB_SETCURSEL, GWLP_WNDPROC,
+			GW_CHILD, WINDOW_STYLE,
 		},
 	},
 };
 
+const APP_STATE_PROPERTY: &str = "my_app_state";
+
 fn main() -> std::result::Result<(), ()> {
 	let app = App::new("Control Subclass — Win32 💖 Rust");
+
 	match app.run() {
 		Ok(_) => Ok(()),
 		Err(e) => {
@@ -30,19 +38,108 @@ fn main() -> std::result::Result<(), ()> {
 	}
 }
 
-#[derive(Debug, Default, WindowBase, Clone)]
+#[derive(Default, WindowBase)]
 pub struct App {
 	h_instance: HINSTANCE,
 	h_window: HWND,
 	title: String,
-	edit_base_win_proc: Option<isize>,
+	edit_base_win_proc: Option<WinProc>,
 	h_combo1: Option<HWND>,
 	h_combo2: Option<HWND>,
 	h_edit1: Option<HWND>,
 	h_edit2: Option<HWND>,
 }
 
+impl Debug for App {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.debug_struct("App")
+			.field("h_instance", &self.h_instance)
+			.field("h_window", &self.h_window)
+			.field("title", &self.title)
+			.field(
+				"edit_base_win_proc",
+				&match self.edit_base_win_proc {
+					Some(_) => Some(()),
+					None => None,
+				},
+			)
+			.field("h_combo1", &self.h_combo1)
+			.field("h_combo2", &self.h_combo2)
+			.field("h_edit1", &self.h_edit1)
+			.field("h_edit2", &self.h_edit2)
+			.finish()
+	}
+}
+
 impl WindowHandler for App {
+	fn on_create_mut(&mut self) -> Result<MessageAction> {
+		// 1. create two combobox
+		let class_name = "COMBOBOX";
+		let combo_style: WINDOW_STYLE = CBS_DROPDOWN.try_into().unwrap();
+		let style = style::Child | style::Visible | style::Type(combo_style);
+
+		let combo1 = self.create_window(
+			class_name,
+			None,
+			None,
+			Some(style),
+			10,
+			10,
+			100,
+			50,
+			None,
+			Some(self.h_window),
+			WindowCreateData::None,
+		)?;
+
+		let combo2 = self.create_window(
+			class_name,
+			None,
+			None,
+			Some(style),
+			120,
+			10,
+			100,
+			50,
+			Some(self.h_instance),
+			Some(self.h_window),
+			WindowCreateData::None,
+		)?;
+
+		// 2. get edit control handle from each combobox
+		let edit1 = unsafe { GetWindow(combo1, GW_CHILD) };
+		let edit2 = unsafe { GetWindow(combo2, GW_CHILD) };
+
+		// 3. change the win-proc for both edit handlers. Both base win-proc are the same, we only need one pointer.
+		//
+		// Note: an alternative to SetWindowLongPtr + GWLP_WNDPROC is to use SetWindowSubclass.
+		// See https://docs.microsoft.com/en-us/windows/win32/api/commctrl/nf-commctrl-setwindowsubclass
+		let base_win_proc =
+			set_window_long_ptr(edit1, GWLP_WNDPROC, Self::edit_win_proc as *mut isize as _)?;
+		set_window_long_ptr(edit2, GWLP_WNDPROC, Self::edit_win_proc as *mut isize as _)?;
+
+		// 4. pass state pointer to be available from win_proc
+		//
+		// Note: the base window may already be using GWLP_USERDATA, so it is safer to pass data another way
+		//
+		// Note: different ways to pass data to the win_proc are discussed here: https://stackoverflow.com/questions/117792/best-method-for-storing-this-pointer-for-use-in-wndproc
+
+		set_property(edit1, APP_STATE_PROPERTY, self)?;
+		set_property(edit2, APP_STATE_PROPERTY, self)?;
+
+		// 5. keep references to combobox, edits, and base win-proc
+		self.h_combo1 = Some(combo1);
+		self.h_combo2 = Some(combo2);
+		self.h_edit1 = Some(edit1);
+		self.h_edit2 = Some(edit2);
+
+		unsafe {
+			self.edit_base_win_proc = Some(std::mem::transmute(base_win_proc));
+		}
+
+		Ok(MessageAction::Continue)
+	}
+
 	fn on_message(
 		&mut self,
 		message: message::Type,
@@ -56,44 +153,47 @@ impl WindowHandler for App {
 
 			message::Setfocus => {
 				display!("on_message => SetFocus");
-
 				unsafe { SetFocus(self.h_combo1.unwrap()) };
 				Ok(FullyHandled)
 			}
 
 			app_message::Tab => {
 				display!("on_message => Tab");
-
-				let focus = unsafe { GetFocus() };
-				if focus == self.h_combo1.unwrap() {
-					unsafe { SetFocus(self.h_combo2.unwrap()) };
-				} else {
-					unsafe { SetFocus(self.h_combo1.unwrap()) };
+				unsafe {
+					let focus = GetFocus();
+					if focus == self.h_edit1.unwrap() {
+						SetFocus(self.h_combo2.unwrap());
+					} else if focus == self.h_edit2.unwrap() {
+						SetFocus(self.h_combo1.unwrap());
+					} else {
+						return Ok(Continue);
+					}
 				}
 				Ok(FullyHandled)
 			}
 
 			app_message::Esc => {
 				display!("on_message => Esc");
-
 				unsafe {
-					let combo = if GetFocus() == self.h_edit1.unwrap() {
+					let focus = GetFocus();
+					let combo = if focus == self.h_edit1.unwrap() {
 						self.h_combo1.unwrap()
-					} else {
+					} else if focus == self.h_edit2.unwrap() {
 						self.h_combo2.unwrap()
+					} else {
+						return Ok(Continue);
 					};
 
 					// clear selection and focus main window
-					let res = SendMessageW(
+					SendMessageW(
 						combo,
 						CB_SETCURSEL,
 						WPARAM::MAX, /* equivalent to (WPARAM)(-1) */
 						0,
 					);
-					assert_eq(res, 0, "failed to clear selection").unwrap();
-					SetFocus(self.h_instance);
-				}
 
+					SetFocus(self.h_window);
+				}
 				Ok(FullyHandled)
 			}
 
@@ -143,67 +243,8 @@ impl WindowHandler for App {
 				Ok(FullyHandled)
 			}
 
-			_ => {
-				display!("message => {}", message);
-				Ok(Continue)
-			}
+			_ => Ok(Continue),
 		}
-	}
-
-	fn on_create_mut(&mut self) -> Result<MessageAction> {
-		// 1. create two combobox
-		let class_name = "COMBOBOX";
-		let combo_style: WINDOW_STYLE = CBS_DROPDOWN.try_into().unwrap();
-		let style = style::Child | style::Visible | style::Type(combo_style);
-
-		let combo1 = self.create_window(
-			class_name,
-			None,
-			None,
-			Some(style),
-			10,
-			10,
-			100,
-			50,
-			None,
-			Some(self.h_window),
-		)?;
-
-		let combo2 = self.create_window(
-			class_name,
-			None,
-			None,
-			Some(style),
-			120,
-			10,
-			100,
-			50,
-			Some(self.h_instance),
-			Some(self.h_window),
-		)?;
-
-		// 2. get edit control handle from each combobox
-		let pt = POINT { x: 1, y: 1 };
-		let edit1 = unsafe { ChildWindowFromPoint(combo1, pt) };
-		let edit2 = unsafe { ChildWindowFromPoint(combo2, pt) };
-
-		// 3. set state pointer as user data
-		self.set_child_state(edit1)?;
-		self.set_child_state(edit2)?;
-
-		// 4. change the win-proc for both edit handlers. Both base win-proc are the same, we only need one pointer.
-		let base_win_proc =
-			set_window_long_ptr(edit1, GWLP_WNDPROC, Self::edit_win_proc as *mut isize as _)?;
-		set_window_long_ptr(edit2, GWLP_WNDPROC, Self::edit_win_proc as *mut isize as _)?;
-
-		// 5. keep references to combobox, edits, and base win-proc
-		self.h_combo1 = Some(combo1);
-		self.h_combo2 = Some(combo2);
-		self.h_edit1 = Some(edit1);
-		self.h_edit2 = Some(edit2);
-		self.edit_base_win_proc = Some(base_win_proc);
-
-		Ok(MessageAction::Continue)
 	}
 }
 
@@ -223,7 +264,6 @@ impl App {
 				..Default::default()
 			},
 		)?;
-		display!("main_window: {:?}", main_window);
 
 		let res = Self::event_loop();
 		display!("event_loop result: {} ({:#X})", res, res);
@@ -231,74 +271,76 @@ impl App {
 		Ok(())
 	}
 
-	extern "system" fn edit_win_proc(
+	/// # Safety
+	///
+	/// This function is full of thread unsafetiness and other dangerous stuff.
+	unsafe extern "system" fn edit_win_proc(
 		h_window: HWND,
 		message: message::Type,
 		wparam: WPARAM,
 		lparam: LPARAM,
 	) -> LRESULT {
-		display!("enter edit_win_proc");
+		// let state: *const Self
+		static mut STATE: *const App = std::ptr::null();
+		static INIT: Once = Once::new();
 
-		let state = Self::get_state(h_window).unwrap();
+		INIT.call_once(|| {
+			STATE = get_property(h_window, APP_STATE_PROPERTY).unwrap() as _;
+		});
+
+		assert_not_null(STATE, "edit_win_proc static STATE not initialized").unwrap();
 
 		// pass Tab, Esc, and Return key events to main window
 		match message {
 			message::KeyDown => {
 				display!("edit_win_proc => KeyDown");
-
 				let key: u16 = wparam.try_into().unwrap();
-				unsafe {
-					match key {
-						VK_TAB => {
-							display!("edit_win_proc => VK_TAB");
 
-							SendMessageW((*state).h_window, app_message::Tab, wparam, lparam);
-							return 0;
-						}
-						VK_ESCAPE => {
-							display!("edit_win_proc => VK_ESCAPE");
-
-							SendMessageW((*state).h_window, app_message::Esc, wparam, lparam);
-							return 0;
-						}
-						VK_RETURN => {
-							display!("edit_win_proc => VK_RETURN");
-
-							SendMessageW((*state).h_window, app_message::Enter, wparam, lparam);
-							return 0;
-						}
-						_ => {
-							display!("edit_win_proc => KeyDown => key {}", key)
-						}
+				match key {
+					VK_TAB => {
+						display!("edit_win_proc => VK_TAB");
+						SendMessageW((*STATE).h_window, app_message::Tab, wparam, lparam);
+						return 0;
+					}
+					VK_ESCAPE => {
+						display!("edit_win_proc => VK_ESCAPE");
+						SendMessageW((*STATE).h_window, app_message::Esc, wparam, lparam);
+						return 0;
+					}
+					VK_RETURN => {
+						display!("edit_win_proc => VK_RETURN");
+						SendMessageW((*STATE).h_window, app_message::Enter, wparam, lparam);
+						return 0;
+					}
+					_ => {
+						display!("edit_win_proc => KeyDown => key {}", key)
 					}
 				}
 			}
+
 			message::KeyUp | message::Char => {
 				display!("edit_win_proc => KeyUp | Char");
-
 				let char: u16 = wparam.try_into().unwrap();
 				if let VK_TAB | VK_ESCAPE | VK_RETURN = char {
 					return 0;
 				}
 			}
 
-			_ => {
-				display!("edit_win_proc => message {}", message)
-			}
+			_ => {}
 		}
 
 		// pass all other messages to base win-proc
-		unsafe {
-			let base_proc = (*state)
-				.edit_base_win_proc
-				.expect("no self.edit_base_win_proc");
-
-			display!("call edit_base_win_proc");
-			let proc: WNDPROC = Some(std::mem::transmute(base_proc));
-
-			display!("transmuted edit_base_win_proc to WNDPROC");
-			CallWindowProcW(proc, h_window, message, wparam, lparam)
+		if (*STATE).edit_base_win_proc.is_none() {
+			panic!("no state.edit_base_win_proc");
 		}
+
+		CallWindowProcW(
+			(*STATE).edit_base_win_proc,
+			h_window,
+			message,
+			wparam,
+			lparam,
+		)
 	}
 }
 

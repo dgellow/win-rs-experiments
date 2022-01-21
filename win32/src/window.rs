@@ -58,6 +58,11 @@ impl Default for Options {
 	}
 }
 
+pub enum WindowCreateData {
+	AppState,
+	None,
+}
+
 pub trait WindowBase: Default {
 	fn init_state(h_instance: HINSTANCE) -> Self;
 	fn h_instance(&self) -> HINSTANCE;
@@ -77,7 +82,7 @@ pub trait WindowBase: Default {
 		height: i32,
 		h_instance: Option<HINSTANCE>,
 		parent: Option<HWND>,
-		set_create_data: bool,
+		create_data: WindowCreateData,
 	) -> Result<HWND> {
 		let hwnd = unsafe {
 			CreateWindowExW(
@@ -93,10 +98,9 @@ pub trait WindowBase: Default {
 				None,
 				h_instance,
 				// pass ptr-to-self to win-proc, via WM_CREATE lparam
-				if set_create_data {
-					self as *mut _ as _
-				} else {
-					std::ptr::null_mut()
+				match create_data {
+					WindowCreateData::AppState => self as *mut _ as _,
+					WindowCreateData::None => std::ptr::null_mut(),
 				},
 			)
 		};
@@ -168,7 +172,7 @@ where
 			opts.height,
 			Some(h_instance),
 			None,
-			true,
+			WindowCreateData::AppState,
 		)?;
 		// CreateWindowExW(
 		// 	opts.window_ext_style.0,
@@ -201,7 +205,6 @@ where
 		assert_not_null(create_struct, "WM_CREATE lparam cannot be null")?;
 		unsafe {
 			let state = (*create_struct).lpCreateParams as *mut Self;
-			(*state).set_h_window(h_window);
 			set_window_long_ptr(h_window, GWLP_USERDATA, state as _)
 				.wrap_err("set_state_from_lparam failed")?;
 
@@ -254,6 +257,7 @@ where
 		match message {
 			message::Create => {
 				let state = Self::set_window_state_from_lparam(h_window, lparam).unwrap();
+				(*state).set_h_window(h_window);
 				USER_DATA = state as _;
 			}
 			// called before Create, no state has yet been associated with window handler
@@ -287,8 +291,6 @@ where
 			let font = GetStockObject(DEFAULT_GUI_FONT);
 			EnumChildWindows(h_window, Some(Self::set_font), font);
 		}
-
-		display!("");
 
 		match action {
 			Continue | None => default_win_proc(),
