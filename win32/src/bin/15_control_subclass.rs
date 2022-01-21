@@ -1,7 +1,5 @@
 // Implement combobox subclassing example from https://docs.microsoft.com/en-us/windows/win32/controls/subclass-a-combo-box#complete-example
 
-use std::{fmt::Debug, sync::Once};
-
 use derive::WindowBase;
 use gui::{
 	assert::{assert_not_null, Result},
@@ -12,6 +10,7 @@ use gui::{
 	},
 	window_long::{get_property, set_property, set_window_long_ptr},
 };
+use std::sync::Once;
 use windows::Win32::{
 	Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM},
 	UI::{
@@ -49,27 +48,6 @@ pub struct App {
 	h_edit2: Option<HWND>,
 }
 
-impl Debug for App {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		f.debug_struct("App")
-			.field("h_instance", &self.h_instance)
-			.field("h_window", &self.h_window)
-			.field("title", &self.title)
-			.field(
-				"edit_base_win_proc",
-				&match self.edit_base_win_proc {
-					Some(_) => Some(()),
-					None => None,
-				},
-			)
-			.field("h_combo1", &self.h_combo1)
-			.field("h_combo2", &self.h_combo2)
-			.field("h_edit1", &self.h_edit1)
-			.field("h_edit2", &self.h_edit2)
-			.finish()
-	}
-}
-
 impl WindowHandler for App {
 	fn on_create_mut(&mut self) -> Result<MessageAction> {
 		// 1. create two combobox
@@ -105,7 +83,7 @@ impl WindowHandler for App {
 			WindowCreateData::None,
 		)?;
 
-		// 2. get edit control handle from each combobox
+		// 2. get the edit control handle from each combobox
 		let edit1 = unsafe { GetWindow(combo1, GW_CHILD) };
 		let edit2 = unsafe { GetWindow(combo2, GW_CHILD) };
 
@@ -117,7 +95,7 @@ impl WindowHandler for App {
 			set_window_long_ptr(edit1, GWLP_WNDPROC, Self::edit_win_proc as *mut isize as _)?;
 		set_window_long_ptr(edit2, GWLP_WNDPROC, Self::edit_win_proc as *mut isize as _)?;
 
-		// 4. pass state pointer to be available from win_proc
+		// 4. store data pointer to be available from win_proc
 		//
 		// Note: the base window may already be using GWLP_USERDATA, so it is safer to pass data another way
 		//
@@ -149,12 +127,14 @@ impl WindowHandler for App {
 		match message {
 			message::Create => self.on_create_mut(),
 
+			// 6. set default focus to first combo box
 			message::Setfocus => {
 				display!("on_message => SetFocus");
 				unsafe { SetFocus(self.h_combo1.unwrap()) };
 				Ok(FullyHandled)
 			}
 
+			// 7. on tab switch focus between combo boxes
 			app_message::Tab => {
 				display!("on_message => Tab");
 				unsafe {
@@ -170,6 +150,7 @@ impl WindowHandler for App {
 				Ok(FullyHandled)
 			}
 
+			// 8. on esc clear combo selection and reset focus
 			app_message::Esc => {
 				display!("on_message => Esc");
 				unsafe {
@@ -195,6 +176,7 @@ impl WindowHandler for App {
 				Ok(FullyHandled)
 			}
 
+			// 9. on enter save edit text as a new combo item
 			app_message::Enter => {
 				display!("on_message => Enter");
 
@@ -228,7 +210,7 @@ impl WindowHandler for App {
 							buffer.as_mut_ptr() as _,
 						);
 
-						// add string and select it
+						// add string to combo list and select it
 						if index == cb_err {
 							index = SendMessageW(combo, CB_ADDSTRING, 0, buffer.as_mut_ptr() as _);
 						}
@@ -281,12 +263,13 @@ impl App {
 		static mut STATE: *const App = std::ptr::null();
 		static INIT: Once = Once::new();
 		INIT.call_once(|| {
+			// 10. get data ptr from window property
 			STATE = get_property(h_window, APP_STATE_PROPERTY).unwrap() as _;
 		});
 
 		assert_not_null(STATE, "edit_win_proc static STATE not initialized").unwrap();
 
-		// pass Tab, Esc, and Return key events to main window
+		// 11. pass Tab, Esc, and Return key events to main window
 		match message {
 			message::KeyDown => {
 				display!("edit_win_proc => KeyDown");
@@ -308,12 +291,9 @@ impl App {
 						SendMessageW((*STATE).h_window, app_message::Enter, wparam, lparam);
 						return 0;
 					}
-					_ => {
-						display!("edit_win_proc => KeyDown => key {}", key)
-					}
+					_ => {}
 				}
 			}
-
 			message::KeyUp | message::Char => {
 				display!("edit_win_proc => KeyUp | Char");
 				let char: u16 = wparam.try_into().unwrap();
@@ -321,15 +301,13 @@ impl App {
 					return 0;
 				}
 			}
-
 			_ => {}
 		}
 
-		// pass all other messages to base win-proc
+		// 12. pass all other messages to base win-proc
 		if (*STATE).edit_base_win_proc.is_none() {
 			panic!("no state.edit_base_win_proc");
 		}
-
 		CallWindowProcW(
 			(*STATE).edit_base_win_proc,
 			h_window,
