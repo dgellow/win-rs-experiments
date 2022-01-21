@@ -4,29 +4,24 @@ use derive::WindowBase;
 use gui::{
 	assert::{assert_eq, assert_ne, Result, WithLastWin32Error},
 	display, err_display, loword, menu,
-	wide_string::ToWide,
 	window::{
-		message::{self},
-		show_cmd, MessageAction, Options, WindowBase, WindowHandler,
+		message::{self}, MessageAction, Options, WindowBase, WindowHandler,
 	},
 };
 
 use windows::Win32::{
 	Foundation::{CloseHandle, HANDLE, HINSTANCE, HWND, LPARAM, RECT, WPARAM},
 	Graphics::Gdi::{
-		BeginPaint, BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteObject, EndPaint,
-		GetDC, GetDIBits, GetObjectW, ReleaseDC, SelectObject, SetStretchBltMode, StretchBlt,
-		BITMAP, BITMAPFILEHEADER, BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS, HALFTONE, HBITMAP, HDC,
+		BeginPaint, CreateCompatibleDC, DeleteObject, EndPaint,
+		GetDC, ReleaseDC, SetStretchBltMode, StretchBlt, HALFTONE, HBITMAP, HDC,
 		PAINTSTRUCT, SRCCOPY,
 	},
-	Storage::FileSystem::{CreateFileW, WriteFile, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL},
 	System::{
-		Memory::{GlobalAlloc, GlobalFree, GlobalLock, GlobalUnlock, GHND},
-		SystemServices::GENERIC_WRITE,
+		Memory::{GlobalFree, GlobalUnlock},
 	},
 	UI::WindowsAndMessaging::{
 		AppendMenuW, CreateMenu, CreatePopupMenu, DestroyWindow, GetClientRect, GetSystemMetrics,
-		SendMessageW, SetMenu, ShowWindow, SM_CXSCREEN, SM_CYSCREEN,
+		SendMessageW, SetMenu, SM_CXSCREEN, SM_CYSCREEN,
 	},
 };
 
@@ -95,7 +90,7 @@ impl WindowHandler for App {
 		unsafe {
 			let menubar = CreateMenu();
 			let menu = CreateMenu();
-			let menu_file = CreatePopupMenu();
+			let _menu_file = CreatePopupMenu();
 
 			// [ File ]
 			//   ├─ Save
